@@ -1,26 +1,36 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, ChangeEvent } from "react";
 import { Link } from "react-router";
+import { UserSignUp } from "../types/auth";
+// import authApi from "../api/authApi";
 
 const SignUpForm = () => {
-  const [password, setPassword] = useState<string>("");
+  const [userSignUp, setUserSignUp] = useState<UserSignUp>({
+    name: "",
+    email: "",
+    password: "",
+  });
   const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [error, setError] = useState<string>(""); 
-  const [confirmError, setConfirmError] = useState<string>("");
+  const [confirmError, setConfirmError] = useState<string>(""); 
 
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setUserSignUp((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleConfirmPassword = (value: string) => {
     setConfirmPassword(value);
-    if (password && value !== password) {
+    if (userSignUp.password && value !== userSignUp.password) {
       setConfirmError("Mật khẩu nhập lại không khớp");
     } else {
       setConfirmError("");
     }
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (password !== confirmPassword) {
+    if (userSignUp.password !== confirmPassword) {
       setConfirmError("Mật khẩu nhập lại không khớp");
       return;
     }
@@ -28,7 +38,9 @@ const SignUpForm = () => {
     setConfirmError("");
     setError("");
 
-    console.log({ password, confirmPassword });
+    console.log(userSignUp)
+
+    // const result = await authApi.signUp(userSignUp)
   };
 
   return (
@@ -37,12 +49,27 @@ const SignUpForm = () => {
       className="flex flex-col items-center gap-4 w-1/2 min-w-[300px] mx-auto mt-12 p-6 border border-gray-300 rounded-lg shadow-md bg-white"
     >
       <div className="flex justify-between items-center w-full">
-        <label htmlFor="username" className="w-28 font-medium text-gray-700">
-          Tài khoản:
+        <label htmlFor="name" className="w-28 font-medium text-gray-700">
+          Họ và tên:
         </label>
         <input
-          name="username"
+          name="name"
           type="text"
+          value={userSignUp.name}
+          onChange={handleChange}
+          className="flex-1 border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400"
+        />
+      </div>
+
+      <div className="flex justify-between items-center w-full">
+        <label htmlFor="email" className="w-28 font-medium text-gray-700">
+          Email:
+        </label>
+        <input
+          name="email"
+          type="email"
+          value={userSignUp.email}
+          onChange={handleChange}
           className="flex-1 border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400"
         />
       </div>
@@ -54,8 +81,8 @@ const SignUpForm = () => {
         <input
           name="password"
           type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          value={userSignUp.password}
+          onChange={handleChange}
           className="flex-1 border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400"
         />
       </div>

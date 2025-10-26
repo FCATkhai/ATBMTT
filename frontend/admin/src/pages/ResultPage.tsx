@@ -22,7 +22,7 @@ const elections: IElection[] = [
   },
 ];
 
-const MainPage = () => {
+const ResultPage = () => {
 
     const [selectedElection, setSelectedElection] = useState<IElection | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -46,18 +46,13 @@ const MainPage = () => {
     };
 return (
     <div
-      className="
-
-      "
-    >
-      <main
         className="
           col-span-12 sm:col-span-10
           overflow-y-auto
         "
-      >
+    >
         <div className="flex justify-between items-center mb-4">
-            <h1 className="text-2xl font-bold">Danh sách các cuộc bầu cử</h1>
+            <h1 className="text-2xl font-bold">Kết quả các cuộc bầu cử</h1>
             {/* Nút Tạo cuộc bầu cử */}
             <button
                 onClick={handleCreateClick}
@@ -84,9 +79,8 @@ return (
             />
             </div>
         </div>
-      </main>
     </div>
   );
 }
 
-export default MainPage;
+export default ResultPage;

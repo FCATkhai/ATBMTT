@@ -38,7 +38,7 @@ export interface IElectionCreate {
     name: string,
     startTime: Date,
     endTime: Date,
-    candidateIds: string[]
+    status: ElectionStatus
 }
 
 export interface IBallot{

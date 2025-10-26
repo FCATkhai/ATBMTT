@@ -2,11 +2,11 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { UserSignUp, UserLogin, LoginResponse} from '../types/auth';
 
 import type { RootState } from './store';
-import { IUser } from '../types/election';
+import { ICandidate, ICandidateCreate, IElection, IElectionCreate, IUser } from '../types/election';
 export const apiSlice = createApi({
   reducerPath: '/',
   baseQuery: fetchBaseQuery({ 
-    baseUrl:"http://localhost:3000/",
+    baseUrl:"http://localhost:5000/",
     prepareHeaders: (headers, { getState }) => {
       const token = (getState() as RootState).auth.token
 
@@ -22,6 +22,12 @@ export const apiSlice = createApi({
     getUsers: builder.query<IUser[], void>({
       query: () => 'users/',
     }),
+    getCandidateByElectionId: builder.query<ICandidate[], string>({
+      query: (id) => 'candidate/electionId/' + id
+    }),
+    getCandidates: builder.query<ICandidate[], void>({
+      query: () => 'candidate/'
+    }),
     createUser: builder.mutation<IUser, Partial<UserSignUp>>({
       query: (newUser) => ({
         url: "users",
@@ -35,6 +41,27 @@ export const apiSlice = createApi({
         method: "POST",
         body: loginData
       })
+    }),
+    createElection: builder.mutation<IElection, IElectionCreate>({
+      query: (electionData) => ({
+        url: "election",
+        method: "POST",
+        body: electionData
+      })
+    }),
+    createCandidate: builder.mutation<ICandidate, ICandidateCreate>({
+      query: (candidateData) => ({
+        url: "candidate",
+        method: "POST",
+        body: candidateData
+      })      
+    }),
+    creatListCandidate: builder.mutation<ICandidate[], ICandidateCreate[]>({
+      query: (candidateData) => ({
+        url: "candidate/list",
+        method: "POST",
+        body: candidateData
+      })           
     })
   })
 })

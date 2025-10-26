@@ -235,9 +235,9 @@ export function decrypt(publicKey: { n: bigint; n2: bigint }, privateKey: { lamb
 
 export function serializePublicKey(pk: { n: bigint; g: bigint; n2: bigint }) {
     return {
-        n: pk.n.toString(),
-        g: pk.g.toString(),
-        n2: pk.n2.toString()
+        n: pk.n.toString(16),
+        g: pk.g.toString(16),
+        n2: pk.n2.toString(16)
     }
 }
 
@@ -251,10 +251,10 @@ export function deserializePublicKey(data: { n: string; g: string; n2: string })
 
 export function serializePrivateKey(sk: { lambda: bigint; mu: bigint; p?: bigint; q?: bigint }) {
     return {
-        lambda: sk.lambda.toString(),
-        mu: sk.mu.toString(),
-        p: sk.p?.toString(),
-        q: sk.q?.toString()
+        lambda: sk.lambda.toString(16),
+        mu: sk.mu.toString(16),
+        p: sk.p?.toString(16),
+        q: sk.q?.toString(16)
     }
 }
 
@@ -270,8 +270,7 @@ export function deserializePrivateKey(data: { lambda: string; mu: string; p?: st
 /* -------------------------
    Example usage
    ------------------------- */
-
-if (require.main === module) {
+function exampleUsage() {
     ;(async () => {
         console.log('Generating keypair (this can take some time)...')
         const { publicKey, privateKey } = await generateKeypair(512) // 512 for demo; use >= 2048 for real

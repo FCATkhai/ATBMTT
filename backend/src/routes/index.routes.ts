@@ -1,11 +1,8 @@
-import express from "express";
+import express from 'express'
+import userRoutes from './user.routes'
 
+const router = express.Router()
 
-const router = express.Router();
+router.use('/users', userRoutes)
 
-router.use('/',(req, res) => {
-  res.send('Hello World!')}
-);
-
-
-export default router;
+export default router

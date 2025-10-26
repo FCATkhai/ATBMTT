@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose'
+import { Schema, model } from 'mongoose'
 import bcrypt from 'bcrypt'
 import type { IUser } from '~/@types/dbInterfaces'
 
@@ -35,5 +35,5 @@ UserSchema.methods.comparePassword = async function (candidatePassword: string):
     return await bcrypt.compare(candidatePassword, this.password)
 }
 
-const UserModel = mongoose.model<IUser>('User', UserSchema)
+const UserModel = model<IUser>('User', UserSchema)
 export default UserModel

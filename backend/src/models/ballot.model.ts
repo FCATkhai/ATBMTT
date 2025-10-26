@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose'
+import { Schema, model } from 'mongoose'
 import type { IBallot } from '~/@types/dbInterfaces'
 
 const BallotSchema = new Schema<IBallot>(
@@ -12,5 +12,5 @@ const BallotSchema = new Schema<IBallot>(
     { timestamps: true }
 )
 
-const BallotModel = mongoose.model<IBallot>('Candidate', BallotSchema)
+const BallotModel = model<IBallot>('Candidate', BallotSchema)
 export default BallotModel

@@ -17,6 +17,12 @@ export interface ICandidate{
     electionId: string
 }
 
+export interface ICandidateCreate {
+    name: string,
+    image: string,
+    electionId: string
+}
+
 export type ElectionStatus = 'upcoming' | 'running' | 'finished'
 
 export interface IElection{
@@ -26,6 +32,13 @@ export interface IElection{
     endTime: Date
     candidateIds: string[]
     status: ElectionStatus
+}
+
+export interface IElectionCreate {
+    name: string,
+    startTime: Date,
+    endTime: Date,
+    candidateIds: string[]
 }
 
 export interface IBallot{

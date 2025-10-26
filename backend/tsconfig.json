@@ -43,7 +43,7 @@
         "skipLibCheck": true,
 
         "moduleResolution": "node",
-        "baseUrl": "../",
+        "baseUrl": "./src",
         "paths": {
             "~/*": ["*"]
         }

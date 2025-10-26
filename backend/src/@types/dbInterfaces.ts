@@ -29,7 +29,7 @@ export interface IElection extends Document {
     publicKey: { n: string; g: string } // Paillier public key (n, g)
     startTime: Date
     endTime: Date
-    candidateIds: string[]
+    candidateIds?: string[]
     status: ElectionStatus
 }
 

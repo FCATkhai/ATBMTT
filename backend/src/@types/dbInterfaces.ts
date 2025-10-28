@@ -17,7 +17,7 @@ export interface IUser extends Document {
 export interface ICandidate extends Document {
     _id: Types.ObjectId
     name: string
-    image: string //base64
+    image?: string //base64
     electionId: Types.ObjectId
 }
 
@@ -26,10 +26,9 @@ export type ElectionStatus = 'upcoming' | 'running' | 'finished'
 export interface IElection extends Document {
     _id: Types.ObjectId
     name: string
-    publicKey: { n: string; g: string } // Paillier public key (n, g)
+    publicKey: { n: string; g: string; n2: string } // Paillier public key (n, g)
     startTime: Date
     endTime: Date
-    candidateIds?: string[]
     status: ElectionStatus
 }
 
@@ -38,9 +37,11 @@ export interface IBallot extends Document {
     voteToken: string // token dùng để xác thực phiếu bầu (SHA256(voterId + electionId + secretSalt))
     electionId: Types.ObjectId
     encryptedBallot: string // ciphertext
-    timestamp: Date
+    createdAt: Date
+    updatedAt: Date
     // hashPrev?: string | null // cho hash chain (có thể implement ledger)
     // hashThis: string
+    compareVoteToken(voterId: string, electionId: string): boolean
 }
 
 type tally = {
@@ -53,5 +54,6 @@ export interface IResult extends Document {
     _id: Types.ObjectId
     electionId: Types.ObjectId
     tallies: tally[]
-    timestamp: Date
+    createdAt: Date
+    updatedAt: Date
 }

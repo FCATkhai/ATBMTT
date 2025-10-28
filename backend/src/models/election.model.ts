@@ -6,7 +6,6 @@ const electionSchema = new Schema<IElection>(
         name: { type: String, required: true },
         startTime: { type: Date, required: true },
         endTime: { type: Date, required: true },
-        candidateIds: [{ type: String, required: true }],
         status: {
             type: String,
             enum: ['upcoming', 'running', 'finished'],
@@ -14,7 +13,8 @@ const electionSchema = new Schema<IElection>(
         },
         publicKey: {
             n: { type: String, required: true },
-            g: { type: String, required: true }
+            g: { type: String, required: true },
+            n2: { type: String, required: true }
         }
     },
     { timestamps: true }

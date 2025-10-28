@@ -10,8 +10,7 @@ const resultSchema = new Schema<IResult>(
                 encryptedSum: { type: String, required: true },
                 decryptedSum: { type: Number, required: true }
             }
-        ],
-        timestamp: { type: Date, default: Date.now }
+        ]
     },
     { timestamps: true }
 )

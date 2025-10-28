@@ -6,7 +6,7 @@ const CandidateSchema = new Schema<ICandidate>(
         /* Collection ứng cử viên */
         name: { type: String, required: true },
         image: { type: String },
-        electionId: { type: Schema.Types.ObjectId, ref: 'Election' }
+        electionId: { type: Schema.Types.ObjectId, ref: 'Election', required: true }
     },
     { timestamps: true }
 )

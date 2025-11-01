@@ -1,5 +1,5 @@
 import { Schema, model } from 'mongoose'
-import type { IElection } from '~/@types/dbInterfaces'
+import { type IElection, ELECTION_STATUSES } from '~/@types/dbInterfaces'
 
 const electionSchema = new Schema<IElection>(
     {
@@ -8,7 +8,7 @@ const electionSchema = new Schema<IElection>(
         endTime: { type: Date, required: true },
         status: {
             type: String,
-            enum: ['upcoming', 'running', 'finished'],
+            enum: ELECTION_STATUSES,
             default: 'upcoming'
         },
         publicKey: {

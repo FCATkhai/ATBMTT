@@ -21,7 +21,8 @@ export interface ICandidate extends Document {
     electionId: Types.ObjectId
 }
 
-export type ElectionStatus = 'upcoming' | 'running' | 'finished'
+export const ELECTION_STATUSES = ['upcoming', 'running', 'finished'] as const
+export type ElectionStatus = (typeof ELECTION_STATUSES)[number]
 
 export interface IElection extends Document {
     _id: Types.ObjectId

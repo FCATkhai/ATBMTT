@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from 'express'
 import User from '../models/user.model'
 import TokenBlacklist from '../models/tokenBlackList.model'
 import jwt from 'jsonwebtoken'
+import { USER_ROLES } from '~/config/constant'
 
 import dotenv from 'dotenv'
 dotenv.config()
@@ -88,3 +89,21 @@ export const authorize =
             next(error)
         }
     }
+
+// chỉ allow admin hoặc chính chủ (dựa vào id trong query param hoặc params)
+export const onwershipAuthorize = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const requestUserId = req.query.id || req.params.id
+        if (!requestUserId) {
+            res.status(400)
+            throw new Error('Bad Request: missing user id in query or params')
+        }
+        if (req.user?.role !== USER_ROLES.ADMIN && req.user?._id !== requestUserId) {
+            res.status(403)
+            throw new Error('Access denied: insufficient permissions')
+        }
+        next()
+    } catch (error) {
+        next(error)
+    }
+}

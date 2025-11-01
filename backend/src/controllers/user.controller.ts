@@ -1,11 +1,15 @@
 import type { Request, Response, NextFunction } from 'express'
 import User from '~/models/user.model'
+import type { IUser } from '~/@types/dbInterfaces'
 import TokenBlacklist from '~/models/tokenBlackList.model'
 import jwt, { type JwtPayload } from 'jsonwebtoken'
-import { USER_ROLES } from '~/config/constant'
+import userService from '~/services/user.service'
+import dotenv from 'dotenv'
+
+dotenv.config()
 
 const JWT_SECRET = process.env.JWT_SECRET as string
-//TODO: thêm chức năng chuyển role user
+
 /**
  *  Đăng ký tài khoản
  *  @route POST /api/users/register
@@ -33,7 +37,7 @@ export const createUser = async (req: Request, res: Response, next: NextFunction
 
         await newUser.save()
 
-        res.status(201).json({ success: true, message: 'User created successfully', user: newUser })
+        res.status(201).json({ success: true, message: 'User created successfully', data: newUser })
     } catch (error: unknown) {
         next(error)
     }
@@ -71,8 +75,8 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
         res.json({
             success: true,
             message: 'Login successful',
-            accessToken: token,
-            user: {
+            access_token: token,
+            data: {
                 _id: user._id,
                 name: user.name,
                 email: user.email,
@@ -117,7 +121,7 @@ export const logoutUser = async (req: Request, res: Response, next: NextFunction
 export const getAllUsers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const users = await User.find().select('-password')
-        res.json({ success: true, users })
+        res.json({ success: true, data: users })
     } catch (error: unknown) {
         next(error)
     }
@@ -130,16 +134,13 @@ export const getAllUsers = async (req: Request, res: Response, next: NextFunctio
  */
 export const getUserById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        if (req.user?.role !== USER_ROLES.ADMIN && req.user?._id !== req.query.id) {
-            res.status(403)
-            throw new Error('Access denied: insufficient permissions')
-        }
-        const user = await User.findById(req.query.id).select('-password')
+        const { id } = req.params
+        const user = await User.findById(id).select('-password')
         if (!user) {
             res.status(404)
             throw new Error('User not found')
         }
-        res.json({ success: true, user })
+        res.json({ success: true, data: user })
     } catch (error: unknown) {
         next(error)
     }
@@ -150,28 +151,28 @@ export const getUserById = async (req: Request, res: Response, next: NextFunctio
  *  @route   PUT/PATCH /api/users/:id
  *  @access  Private/Admin or Owner
  */
+// file: user.controller.ts
+
 export const updateUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        if (req.user?.role !== USER_ROLES.ADMIN && req.user?._id !== req.query.id) {
-            res.status(403)
-            throw new Error('Access denied: insufficient permissions')
+        const { name, role, hasVoted, electionId } = req.body
+
+        const updateData: Partial<IUser> = { name, role, hasVoted, electionId }
+
+        // Logic lọc ra các trường undefined
+        const filteredUpdateData = Object.fromEntries(
+            Object.entries(updateData).filter(([, value]) => value !== undefined)
+        ) as Partial<IUser>
+
+        if (Object.keys(filteredUpdateData).length === 0) {
+            // Trả về lỗi hoặc user ban đầu nếu không có gì để update
+            res.status(400)
+            throw new Error('No fields provided for update')
         }
 
-        const { name, role, hasVoted } = req.body
+        const updatedUser = await userService.updateUserById(req.params.id as string, filteredUpdateData)
 
-        const user = await User.findById(req.params.id)
-        if (!user) {
-            res.status(404)
-            throw new Error('User not found')
-        }
-
-        // Chỉ admin mới được thay đổi role
-        if (role) user.role = role
-        if (name) user.name = name
-        if (typeof hasVoted === 'boolean') user.hasVoted = hasVoted
-
-        const updatedUser = await user.save()
-        res.json({ success: true, message: 'User updated', user: updatedUser })
+        res.json({ success: true, message: 'User updated', data: updatedUser })
     } catch (error: unknown) {
         next(error)
     }

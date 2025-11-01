@@ -181,7 +181,7 @@ export async function generateKeypair(keyBits = 1024) {
     }
 
     const publicKey = { n, g, n2 }
-    const privateKey = { lambda, mu, p, q } // p,q optionally kept for convenience
+    const privateKey = { lambda, mu }
 
     return { publicKey, privateKey }
 }
@@ -252,18 +252,14 @@ export function deserializePublicKey(data: { n: string; g: string; n2: string })
 export function serializePrivateKey(sk: { lambda: bigint; mu: bigint; p?: bigint; q?: bigint }) {
     return {
         lambda: sk.lambda.toString(16),
-        mu: sk.mu.toString(16),
-        p: sk.p?.toString(16),
-        q: sk.q?.toString(16)
+        mu: sk.mu.toString(16)
     }
 }
 
 export function deserializePrivateKey(data: { lambda: string; mu: string; p?: string; q?: string }) {
     return {
         lambda: BigInt(data.lambda),
-        mu: BigInt(data.mu),
-        p: data.p ? BigInt(data.p) : undefined,
-        q: data.q ? BigInt(data.q) : undefined
+        mu: BigInt(data.mu)
     }
 }
 
@@ -296,6 +292,6 @@ export function exampleUsage() {
         // show serialization example
         const pubSer = serializePublicKey(publicKey)
         const privSer = serializePrivateKey(privateKey)
-        console.log('Serialized public key (sample):', { n: pubSer.n.slice(0, 40) + '...' })
+        console.log('Serialized public key:', pubSer)
     })()
 }

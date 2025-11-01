@@ -3,6 +3,12 @@ export const USER_ROLES = {
     ADMIN: 'admin'
 } as const
 
+export const ELECTION_STATUSES = {
+    UPCOMING: 'upcoming',
+    RUNNING: 'running',
+    FINISHED: 'finished'
+} as const
+
 export const USER_GROUPS = {
     ALL_USERS: [USER_ROLES.VOTER, USER_ROLES.ADMIN],
     ADMINS_ONLY: [USER_ROLES.ADMIN]

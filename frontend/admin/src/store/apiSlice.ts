@@ -1,12 +1,12 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import type { UserSignUp, UserLogin, LoginResponse} from '../types/auth';
+import type { UserSignUp, UserLogin, LoginResponse, LogoutResponse} from '../types/auth';
 
 import type { RootState } from './store';
 import { ICandidate, ICandidateCreate, IElection, IElectionCreate, IUser } from '../types/election';
 export const apiSlice = createApi({
   reducerPath: '/',
   baseQuery: fetchBaseQuery({ 
-    baseUrl:"http://localhost:5000/",
+    baseUrl:"http://localhost:5000/api/",
     prepareHeaders: (headers, { getState }) => {
       const token = (getState() as RootState).auth.token
 
@@ -37,14 +37,20 @@ export const apiSlice = createApi({
     }),
     loginUser: builder.mutation<LoginResponse, UserLogin>({
       query: (loginData) => ({
-        url: "auth/login",
+        url: "users/login",
         method: "POST",
         body: loginData
       })
     }),
+    logoutUser: builder.mutation<LogoutResponse,void>({
+      query: () => ({
+        url: "users/logout",
+        method: "POST"
+      })
+    }),
     createElection: builder.mutation<IElection, IElectionCreate>({
       query: (electionData) => ({
-        url: "election",
+        url: "elections",
         method: "POST",
         body: electionData
       })
@@ -62,7 +68,8 @@ export const apiSlice = createApi({
         method: "POST",
         body: candidateData
       })           
-    })
+    }),
+
   })
 })
 

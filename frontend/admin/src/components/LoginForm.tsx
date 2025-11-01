@@ -1,15 +1,17 @@
 import { ChangeEvent, FormEvent, useState } from "react"
 import { Link } from "react-router";
 import authApi from "../api/authApi";
-import { UserLogin } from "../types/auth";
+import { LoginResponse, UserLogin } from "../types/auth";
+import { AxiosResponse } from "axios";
+import { useDispatch } from "react-redux";
+import { logout, setCredentials } from "../store/authSlice";
 
 const LoginForm = () => {
   const [userLogin, setUserLogin] = useState<UserLogin>({
     email: "",
-    password: "",
-    role: "admin"
+    password: ""
   });
-
+  const dispatch = useDispatch()
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
 
@@ -27,10 +29,19 @@ const LoginForm = () => {
     setError("");
 
     try {
-      const res = await authApi.login(userLogin);
-      console.log("✅ Đăng nhập thành công:", res);
-      // Lưu token, chuyển hướng...
-      // localStorage.setItem("token", res.token);
+      const res : AxiosResponse<LoginResponse> = await authApi.login(userLogin);
+      if(res) {
+        if (res.data.user.role != "admin"){
+          alert("Tài khoản hoặc mật khẩu đăng nhập không chính xác")
+          dispatch(logout())
+          location.reload()
+        }
+      }
+      
+      dispatch(setCredentials({ 
+        user: res.data.user, 
+        token: res.data.accessToken 
+      }));
     } catch (err: any) {
       console.error(err);
       setError(err.response?.data?.message || "Đăng nhập thất bại, vui lòng thử lại");

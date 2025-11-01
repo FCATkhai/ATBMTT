@@ -18,8 +18,8 @@ router.post('/login', loginUser)
 router.post('/logout', authenticate, logoutUser)
 
 router.get('/', authorize(USER_GROUPS.ADMINS_ONLY), getAllUsers)
-router.get('/id', authenticate, onwershipAuthorize, getUserById)
-router.put('/id', authenticate, onwershipAuthorize, updateUser)
-router.patch('/id', authenticate, onwershipAuthorize, updateUser)
-router.delete('/id', authorize(USER_GROUPS.ADMINS_ONLY), deleteUser)
+router.get('/:id', authenticate, onwershipAuthorize, getUserById)
+router.put('/:id', authenticate, onwershipAuthorize, updateUser)
+router.patch('/:id', authenticate, onwershipAuthorize, updateUser)
+router.delete('/:id', authorize(USER_GROUPS.ADMINS_ONLY), deleteUser)
 export default router

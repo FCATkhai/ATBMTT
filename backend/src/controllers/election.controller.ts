@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from 'express'
+import userService from '~/services/user.service'
 import Election from '~/models/election.model'
 
 /**
@@ -8,10 +9,10 @@ import Election from '~/models/election.model'
  */
 export const createElection = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const { name, startTime, endTime, publicKey } = req.body
+        const { name, startTime, endTime, publicKey, status } = req.body
 
         // Kiểm tra dữ liệu cơ bản
-        if (!name || !startTime || !endTime || !publicKey?.n || !publicKey?.g) {
+        if (!name || !startTime || !endTime || !publicKey?.n || !publicKey?.g || !status) {
             res.status(400)
             throw new Error('Missing required fields (name, startTime, endTime, publicKey)')
         }
@@ -25,6 +26,7 @@ export const createElection = async (req: Request, res: Response, next: NextFunc
         const election = await Election.create({
             name,
             startTime,
+            status,
             endTime,
             publicKey
         })
@@ -56,7 +58,7 @@ export const getAllElections = async (req: Request, res: Response, next: NextFun
 /**
  *  @desc    Lấy thông tin chi tiết một cuộc bầu cử
  *  @route   GET /api/elections/:id
- *  @access  Public (hoặc Admin)
+ *  @access  Private
  */
 export const getElectionById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -64,6 +66,37 @@ export const getElectionById = async (req: Request, res: Response, next: NextFun
         if (!election) {
             res.status(404)
             throw new Error('Election not found')
+        }
+
+        res.json({ success: true, data: election })
+    } catch (error: unknown) {
+        next(error)
+    }
+}
+
+/*
+ *  @desc    Lấy cuộc bầu cử mà một user đang tham gia
+ *  @route   GET /api/elections/user/:userId
+ *  @access  Private
+ */
+
+export const getElectionByUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const userId = req.params.userId
+        if (!userId) {
+            res.status(400)
+            throw new Error('Missing userId parameter')
+        }
+        // Giả sử mỗi user chỉ tham gia một cuộc bầu cử tại một thời điểm
+        const user = await userService.getUserById(userId)
+        if (!user) {
+            res.status(404)
+            throw new Error('User not found')
+        }
+        const election = await Election.findOne({ _id: user.electionId })
+        if (!election) {
+            res.status(404)
+            throw new Error('No ongoing election found')
         }
 
         res.json({ success: true, data: election })

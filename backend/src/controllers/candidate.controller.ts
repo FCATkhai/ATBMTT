@@ -4,7 +4,7 @@ import Election from '~/models/election.model'
 import candidateService from '~/services/candidate.service'
 import { Types } from 'mongoose'
 import type { ICandidate } from '~/@types/dbInterfaces'
-//TODO: thêm chức năng thêm candidate theo bulk
+
 /**
  *  @desc    Tạo mới ứng cử viên
  *  @route   POST /api/candidates

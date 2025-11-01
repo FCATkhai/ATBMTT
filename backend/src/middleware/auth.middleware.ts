@@ -102,6 +102,7 @@ export const onwershipAuthorize = async (req: Request, res: Response, next: Next
             res.status(403)
             throw new Error('Access denied: insufficient permissions')
         }
+        next()
     } catch (error) {
         next(error)
     }

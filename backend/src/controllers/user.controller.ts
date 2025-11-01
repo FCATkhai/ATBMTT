@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express'
 import User from '~/models/user.model'
+import type { IUser } from '~/@types/dbInterfaces'
 import TokenBlacklist from '~/models/tokenBlackList.model'
 import jwt, { type JwtPayload } from 'jsonwebtoken'
 import userService from '~/services/user.service'
@@ -133,7 +134,8 @@ export const getAllUsers = async (req: Request, res: Response, next: NextFunctio
  */
 export const getUserById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const user = await User.findById(req.query.id).select('-password')
+        const { id } = req.params
+        const user = await User.findById(id).select('-password')
         if (!user) {
             res.status(404)
             throw new Error('User not found')
@@ -149,11 +151,27 @@ export const getUserById = async (req: Request, res: Response, next: NextFunctio
  *  @route   PUT/PATCH /api/users/:id
  *  @access  Private/Admin or Owner
  */
+// file: user.controller.ts
+
 export const updateUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const { name, role, hasVoted } = req.body
+        const { name, role, hasVoted, electionId } = req.body
 
-        const updatedUser = await userService.udateUserById(req.query.id as string, { name, role, hasVoted })
+        const updateData: Partial<IUser> = { name, role, hasVoted, electionId }
+
+        // Logic lọc ra các trường undefined
+        const filteredUpdateData = Object.fromEntries(
+            Object.entries(updateData).filter(([, value]) => value !== undefined)
+        ) as Partial<IUser>
+
+        if (Object.keys(filteredUpdateData).length === 0) {
+            // Trả về lỗi hoặc user ban đầu nếu không có gì để update
+            res.status(400)
+            throw new Error('No fields provided for update')
+        }
+
+        const updatedUser = await userService.updateUserById(req.params.id as string, filteredUpdateData)
+
         res.json({ success: true, message: 'User updated', data: updatedUser })
     } catch (error: unknown) {
         next(error)

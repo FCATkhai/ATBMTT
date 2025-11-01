@@ -13,8 +13,7 @@ import { RootState } from './store/store'
 function App() {
 
   const { user } = useSelector((state: RootState) => state.auth)
-  // const isLoggedIn = !!user
-  const isLoggedIn = true
+  const isLoggedIn = !!user
 
   return (
     <div className="grid grid-cols-12 h-screen">
@@ -30,10 +29,8 @@ function App() {
           <Route path='/signup' element={<SignUpPage />} />
           
           {/* Các Route cần đăng nhập (AdminRoute) */}
-          {/* <Route path='/' element={<AdminRoute element={<MainPage />}/>}/>
-          <Route path='/result' element={<AdminRoute element={<ResultPage />}/>}/> */}
-          <Route path='/' element={<MainPage />}/>
-          <Route path='/result' element={<ResultPage />}/>
+          <Route path='/' element={<AdminRoute element={<MainPage />}/>}/>
+          <Route path='/result' element={<AdminRoute element={<ResultPage />}/>}/>
         </Routes>
         {/* <footer> */}
         {/* <FooterComponent /> */}

@@ -270,7 +270,7 @@ export function deserializePrivateKey(data: { lambda: string; mu: string; p?: st
 /* -------------------------
    Example usage
    ------------------------- */
-function exampleUsage() {
+export function exampleUsage() {
     ;(async () => {
         console.log('Generating keypair (this can take some time)...')
         const { publicKey, privateKey } = await generateKeypair(512) // 512 for demo; use >= 2048 for real

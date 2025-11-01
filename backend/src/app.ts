@@ -3,8 +3,8 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import router from './routes/index.routes'
 import { errorHandler } from './middleware/error.middleware'
+import { exampleUsage } from './utils/paillier'
 
-dotenv.config()
 
 const app = express()
 app.use(cors())
@@ -17,6 +17,9 @@ app.use('/api', router)
 //     await generateStats();
 //     res.json({ message: 'Stats generation triggered manually' });
 // });
+
+
+exampleUsage()
 
 // Use Middleware
 app.use(errorHandler)

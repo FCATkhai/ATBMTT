@@ -2,11 +2,13 @@ import type { Request, Response, NextFunction } from 'express'
 import User from '~/models/user.model'
 import TokenBlacklist from '~/models/tokenBlackList.model'
 import jwt, { type JwtPayload } from 'jsonwebtoken'
-import { USER_ROLES } from '~/config/constant'
 import userService from '~/services/user.service'
+import dotenv from 'dotenv'
+
+dotenv.config()
 
 const JWT_SECRET = process.env.JWT_SECRET as string
-//TODO: thêm chức năng chuyển role user, refactor response dùng data thay vì user, candidate, election,...
+
 /**
  *  Đăng ký tài khoản
  *  @route POST /api/users/register
@@ -72,7 +74,7 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
         res.json({
             success: true,
             message: 'Login successful',
-            accessToken: token,
+            access_token: token,
             data: {
                 _id: user._id,
                 name: user.name,

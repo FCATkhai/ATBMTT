@@ -1,6 +1,7 @@
 import { FormEvent, useState, ChangeEvent } from "react";
 import { Link } from "react-router";
 import { UserSignUp } from "../types/auth";
+import authApi from "../api/authApi";
 // import authApi from "../api/authApi";
 
 const SignUpForm = () => {
@@ -8,6 +9,7 @@ const SignUpForm = () => {
     name: "",
     email: "",
     password: "",
+    role: "admin"
   });
   const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [error, setError] = useState<string>(""); 
@@ -40,7 +42,12 @@ const SignUpForm = () => {
 
     console.log(userSignUp)
 
-    // const result = await authApi.signUp(userSignUp)
+    const result = await authApi.signUp(userSignUp)
+    if (!result) {
+      alert("Lỗi đăng ký")
+      return
+    }
+    alert("Đăng ký thành công")
   };
 
   return (

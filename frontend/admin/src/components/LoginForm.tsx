@@ -1,10 +1,11 @@
 import { ChangeEvent, FormEvent, useState } from "react"
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import authApi from "../api/authApi";
 import { LoginResponse, UserLogin } from "../types/auth";
 import { AxiosResponse } from "axios";
 import { useDispatch } from "react-redux";
 import { logout, setCredentials } from "../store/authSlice";
+
 
 const LoginForm = () => {
   const [userLogin, setUserLogin] = useState<UserLogin>({
@@ -14,6 +15,7 @@ const LoginForm = () => {
   const dispatch = useDispatch()
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
+  const navigate = useNavigate()
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -29,19 +31,20 @@ const LoginForm = () => {
     setError("");
 
     try {
-      const res : AxiosResponse<LoginResponse> = await authApi.login(userLogin);
+      const res: AxiosResponse<LoginResponse> = await authApi.login(userLogin);
       if(res) {
-        if (res.data.user.role != "admin"){
+        console.log(res)
+        if (res.user.role != "admin"){
           alert("Tài khoản hoặc mật khẩu đăng nhập không chính xác")
           dispatch(logout())
           location.reload()
         }
       }
-      
       dispatch(setCredentials({ 
-        user: res.data.user, 
-        token: res.data.accessToken 
+        user: res.user, 
+        token: res.accessToken 
       }));
+      navigate("/")
     } catch (err: any) {
       console.error(err);
       setError(err.response?.data?.message || "Đăng nhập thất bại, vui lòng thử lại");

@@ -25,11 +25,18 @@ export interface ICandidateCreate {
 
 export type ElectionStatus = 'upcoming' | 'running' | 'finished'
 
+export type PublicKeyType = {
+    g: string,
+    n: string,
+    n2: string
+}
+
 export interface IElection{
     _id: string
     name: string
     startTime: Date
     endTime: Date
+    publicKey: PublicKeyType
     candidateIds: string[]
     status: ElectionStatus
 }
@@ -38,6 +45,7 @@ export interface IElectionCreate {
     name: string,
     startTime: Date,
     endTime: Date,
+    publicKey: PublicKeyType,
     status: ElectionStatus
 }
 

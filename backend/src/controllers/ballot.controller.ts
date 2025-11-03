@@ -28,6 +28,21 @@ export const submitBallot = async (req: Request, res: Response, next: NextFuncti
             throw new Error('Election not found')
         }
 
+        // Chỉ cho phép bỏ phiếu trong khoảng thời gian [startTime, endTime]
+        const now = new Date()
+        const starts = new Date(election.startTime)
+        const ends = new Date(election.endTime)
+
+        if (now < starts) {
+            res.status(400)
+            throw new Error('Election has not started yet')
+        }
+
+        if (now > ends) {
+            res.status(400)
+            throw new Error('Election has already ended')
+        }
+
         // Tạo token duy nhất cho phiếu bầu (ẩn danh)
         const voteToken = crypto
             .createHash('sha256')

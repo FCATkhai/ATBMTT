@@ -39,6 +39,24 @@ await Ballot.create({
 });
 ```
 
+enryptedBallot có dạng đã được JSON.stringify() như sau:
+```[
+  {
+    "candidateId": "672a91f3c2b4d3fbc65e1234",
+    "cipher": "0x3baf12c4e08f91abcf47d..."
+  },
+  {
+    "candidateId": "672a91f3c2b4d3fbc65e1235",
+    "cipher": "0x82ff02a1dd94b21f3329c..."
+  },
+  {
+    "candidateId": "672a91f3c2b4d3fbc65e1236",
+    "cipher": "0x19c5ff28a2cc13a4..."
+  }
+]
+```
+cipher là ciphertext của giá trị 0 hoặc 1 tùy theo việc ứng cử viên đó có được bầu hay không
+
 ✅ Kiểm tra “bỏ phiếu 1 lần”:
 
 ```tsx

@@ -50,11 +50,19 @@ export const countElectionResult = async (req: Request, res: Response, next: Nex
             }
         }
 
-        const tallies = Object.entries(candidateSums).map(([candidateId, encryptedSum]) => ({
-            candidateId,
-            encryptedSum,
-            decryptedSum: 0 // tạm thời = 0
-        }))
+        // Check if result already exists to preserve decryptedSum values
+        const existingResult = await Result.findOne({ electionId })
+
+        const tallies = Object.entries(candidateSums).map(([candidateId, encryptedSum]) => {
+            // Find existing tally for this candidate to preserve decryptedSum
+            const existingTally = existingResult?.tallies.find((t) => t.candidateId.toString() === candidateId)
+
+            return {
+                candidateId,
+                encryptedSum,
+                decryptedSum: existingTally?.decryptedSum ?? 0 // Preserve existing or default to 0
+            }
+        })
 
         const result = await Result.findOneAndUpdate({ electionId }, { tallies }, { new: true, upsert: true })
 

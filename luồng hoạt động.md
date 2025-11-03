@@ -69,6 +69,7 @@ if (exists) throw new Error('Voter already voted');
 ### 📊 Giai đoạn 3: Kiểm phiếu (Homomorphic Aggregation)
 
 1. Khi bầu cử kết thúc, admin chạy “Kiểm phiếu tự động”.
+`POST /api/results/count/:electionId`
 2. Server lấy **tất cả phiếu** theo `electionId`:
     
     ```tsx
@@ -91,18 +92,26 @@ if (exists) throw new Error('Voter already voted');
     ```tsx
     const decryptedCounts = encryptedTotals.map(c => privateKey.decrypt(c));
     ```
-    * thực tế
 6. Lưu kết quả vào `Result`:
+`PUT /api/results/decrypt/:electionId`
     
     ```tsx
-    const candidates = await Candidate.find({ electionId });
-    const tallies = candidates.map((c, i) => ({
-      candidateId: c._id,
-      encryptedSum: encryptedTotals[i].toString(),
-      decryptedCount: Number(decryptedCounts[i]),
-    }));
-    
-    await Result.create({ electionId, tallies });
+    const { electionId } = req.params
+    const { tallies } = req.body
+
+    const result = await Result.findOne({ electionId })
+    if (!result) {
+        res.status(404)
+        throw new Error('Result not found')
+    }
+
+    // Gộp decryptedSum vào từng tally tương ứng
+    for (const item of tallies) {
+        const match = result.tallies.find((t) => t.candidateId.toString() === item.candidateId)
+        if (match) match.decryptedSum = item.decryptedSum
+    }
+
+    await result.save()
     ```
     
 

@@ -2,8 +2,7 @@ import type { Request, Response, NextFunction } from 'express'
 import crypto from 'crypto'
 import Ballot from '~/models/ballot.model'
 import Election from '~/models/election.model'
-import dotenv from 'dotenv'
-dotenv.config()
+import userService from '~/services/user.service'
 
 const SECRET_SALT = process.env.VOTE_TOKEN_SALT
 
@@ -60,8 +59,11 @@ export const submitBallot = async (req: Request, res: Response, next: NextFuncti
         const ballot = await Ballot.create({
             voteToken,
             electionId,
-            encryptedBallot
+            encryptedBallot: typeof encryptedBallot === 'string' ? encryptedBallot : JSON.stringify(encryptedBallot) // Đảm bảo là string
         })
+
+        // Cập nhật trạng thái đã bỏ phiếu cho voter
+        await userService.updateUserById(voterId, { hasVoted: true })
 
         res.status(201).json({
             success: true,

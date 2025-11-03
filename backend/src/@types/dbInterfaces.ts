@@ -30,7 +30,7 @@ export interface IElection extends Document {
     publicKey: { n: string; g: string; n2: string } // Paillier public key (n, g)
     startTime: Date
     endTime: Date
-    status: ElectionStatus
+    status?: ElectionStatus // virtual field, not stored in DB
 }
 
 export interface IBallot extends Document {

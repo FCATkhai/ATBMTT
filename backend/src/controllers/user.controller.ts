@@ -75,14 +75,17 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
         res.json({
             success: true,
             message: 'Login successful',
-            access_token: token,
+
             data: {
-                _id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                hasVoted: user.hasVoted,
-                electionId: user.electionId
+                access_token: token,
+                user: {
+                    _id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role,
+                    hasVoted: user.hasVoted,
+                    electionId: user.electionId
+                }
             }
         })
     } catch (error: unknown) {

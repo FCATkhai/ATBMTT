@@ -117,12 +117,19 @@ export const logoutUser = async (req: Request, res: Response, next: NextFunction
 
 /**
  *  @desc    Lấy danh sách tất cả người dùng (chỉ Admin)
- *  @route   GET /api/users
+ *  @route   GET /api/users?electionId=<electionId>
  *  @access  Private/Admin
  */
 export const getAllUsers = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const users = await User.find().select('-password')
+        const { electionId } = req.query
+
+        const filter: Record<string, any> = {};
+        if (electionId) {
+            filter.electionId = electionId;
+        }
+
+        const users = await User.find(filter).select('-password')
         res.json({ success: true, data: users })
     } catch (error: unknown) {
         next(error)

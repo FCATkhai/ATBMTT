@@ -19,7 +19,7 @@ const electionSchema = new Schema<IElection>(
 electionSchema.virtual('status').get(function (this: any) {
     const now = new Date()
     if (now < this.startTime) return 'upcoming'
-    if (now >= this.startTime && now <= this.endTime) return 'ongoing'
+    if (now >= this.startTime && now <= this.endTime) return 'running'
     return 'finished'
 })
 

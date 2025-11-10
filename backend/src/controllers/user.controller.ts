@@ -75,7 +75,6 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
         res.json({
             success: true,
             message: 'Login successful',
-
             data: {
                 access_token: token,
                 user: {

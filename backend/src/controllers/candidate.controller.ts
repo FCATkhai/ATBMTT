@@ -83,7 +83,7 @@ export const createMultipleCandidates = async (req: Request, res: Response, next
 
 /**
  *  @desc    Lấy danh sách tất cả ứng cử viên (tuỳ chọn lọc theo election)
- *  @route   GET /api/candidates
+ *  @route   GET /api/candidates?electionId=<electionId>
  *  @access  Public
  */
 export const getAllCandidates = async (req: Request, res: Response, next: NextFunction): Promise<void> => {

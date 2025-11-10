@@ -2,8 +2,7 @@ import type { Request, Response, NextFunction } from 'express'
 import crypto from 'crypto'
 import Ballot from '~/models/ballot.model'
 import Election from '~/models/election.model'
-import dotenv from 'dotenv'
-dotenv.config()
+import userService from '~/services/user.service'
 
 const SECRET_SALT = process.env.VOTE_TOKEN_SALT
 
@@ -28,6 +27,21 @@ export const submitBallot = async (req: Request, res: Response, next: NextFuncti
             throw new Error('Election not found')
         }
 
+        // Chỉ cho phép bỏ phiếu trong khoảng thời gian [startTime, endTime]
+        const now = new Date()
+        const starts = new Date(election.startTime)
+        const ends = new Date(election.endTime)
+
+        if (now < starts) {
+            res.status(400)
+            throw new Error('Election has not started yet')
+        }
+
+        if (now > ends) {
+            res.status(400)
+            throw new Error('Election has already ended')
+        }
+
         // Tạo token duy nhất cho phiếu bầu (ẩn danh)
         const voteToken = crypto
             .createHash('sha256')
@@ -45,8 +59,11 @@ export const submitBallot = async (req: Request, res: Response, next: NextFuncti
         const ballot = await Ballot.create({
             voteToken,
             electionId,
-            encryptedBallot
+            encryptedBallot: typeof encryptedBallot === 'string' ? encryptedBallot : JSON.stringify(encryptedBallot) // Đảm bảo là string
         })
+
+        // Cập nhật trạng thái đã bỏ phiếu cho voter
+        await userService.updateUserById(voterId, { hasVoted: true })
 
         res.status(201).json({
             success: true,

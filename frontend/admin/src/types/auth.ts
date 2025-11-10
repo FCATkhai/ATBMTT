@@ -20,7 +20,7 @@ export interface SignUpResponse extends Response {
     user: IUser
 }
 export interface LoginResponse extends Response {
-    accessToken: string,
+    access_token: string,
     user: IUser
 }
 export interface LogoutResponse extends Response {

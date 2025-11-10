@@ -17,6 +17,10 @@ export interface ICandidate{
     electionId: string
 }
 
+export interface ICandidateResponse{
+    data: ICandidate[]
+}
+
 export interface ICandidateCreate {
     name: string,
     image: string,
@@ -39,6 +43,10 @@ export interface IElection{
     publicKey: PublicKeyType
     candidateIds: string[]
     status: ElectionStatus
+}
+
+export interface IElectionResponse {
+    data: IElection[]
 }
 
 export interface IElectionCreate {

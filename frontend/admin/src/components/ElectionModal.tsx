@@ -30,18 +30,28 @@ const ElectionModal: React.FC<ElectionModalProps> = ({ isOpen, onClose, election
     publicKey: {n: "", g: "", n2: ""}, // Đã sửa lại theo PublicKeyType đầy đủ của Paillier
     status: calculatedStatus
   });
-  const [candidateList, setCandidateList] = useState<ICandidate[]>([])
+    const [candidateList, setCandidateList] = useState<ICandidate[]>([]);
 
-  // Giả sử apiSlice.endpoints.getCandidates.useQuery tồn tại
-  const {data: fetchedCandidates, isLoading: isLoadingCandidates, isError: isErrorCandidates} = apiSlice.endpoints.getCandidates.useQuery(undefined, {
-    skip: isCreateMode || !election?._id 
-  }); 
+    const [
+        getCandidateByElectionId, 
+        { data: fetchedCandidatesData, isLoading: isLoadingCandidates, isError: isErrorCandidates,isSuccess: isCandidatesSuccess }
+    ] = apiSlice.endpoints.getCandidateByElectionId.useLazyQuery(); 
 
-  useEffect(()=> {
-    if (fetchedCandidates) {
-      setCandidateList(fetchedCandidates)
-    }
-  }, [fetchedCandidates])
+    useEffect(() => {
+        if (isOpen && !isCreateMode && election?._id) {
+            getCandidateByElectionId(election._id); 
+        }
+    }, [isOpen, isCreateMode, election?._id, getCandidateByElectionId]); 
+
+    useEffect(() => {
+        if (isCandidatesSuccess && fetchedCandidatesData) {
+            const candidates = fetchedCandidatesData.data || fetchedCandidatesData; 
+            if (Array.isArray(candidates)) {
+                setCandidateList(candidates);
+            }
+            console.log(candidates)
+        }
+    }, [isCandidatesSuccess, fetchedCandidatesData]);
 
 
   useEffect(() => {
@@ -284,8 +294,8 @@ const ElectionModal: React.FC<ElectionModalProps> = ({ isOpen, onClose, election
             
             <div className="mb-6 text-sm text-gray-700 space-y-1 p-4 border rounded-md">
                 <p>ID: {election?._id}</p>
-                <p>Thời gian bắt đầu: {election?.startTime.toLocaleDateString()}</p>
-                <p>Thời gian kết thúc: {election?.endTime.toLocaleDateString()}</p>
+                <p>Thời gian bắt đầu: {election?.startTime ? toLocalDatetimeString(new Date(election.startTime)) : ""}</p>
+                <p>Thời gian kết thúc: {election?.endTime ? toLocalDatetimeString(new Date(election.endTime)) : ""}</p>
                 <p>Trạng thái: {election?.status}</p>
                 <p>Số lượng Ứng viên (Tổng): {candidateList.length}</p>
             </div>

@@ -1,92 +1,109 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ElectionCard from "../components/ElectionCard";
-import { IElection } from "../types/election";
 import ElectionModal from "../components/ElectionModal";
-
-const elections: IElection[] = [
-  {
-    _id: "E2025-001",
-    name: "Bầu cử Chủ tịch năm 2025",
-    startTime: new Date("2025-10-25"),
-    endTime: new Date("2025-10-30"),
-    candidateIds: ["c1", "c2"],
-    status: "upcoming",
-  },
-  {
-    _id: "E2025-002",
-    name: "Bầu cử Hội đồng Sinh viên",
-    startTime: new Date("2025-09-01"),
-    endTime: new Date("2025-09-05"),
-    candidateIds: ["a", "b", "c"],
-    status: "finished",
-  },
-];
+import { IElection } from "../types/election";
+import apiSlice from "../store/apiSlice";
 
 const MainPage = () => {
+  const [selectedElection, setSelectedElection] = useState<IElection | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreateMode, setIsCreateMode] = useState(false);
 
-    const [selectedElection, setSelectedElection] = useState<IElection | null>(null);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [isCreateMode, setIsCreateMode] = useState(false)
+  // --- Gọi API để lấy danh sách cuộc bầu cử ---
+  const {
+    data: fetchedElections,
+    isLoading,
+    isError,
+    refetch,
+  } = apiSlice.endpoints.getElections.useQuery();
 
-    const handleCardClick = (election: IElection) => {
-        setSelectedElection(election);
-        setIsModalOpen(true);
-    };
+  useEffect(() => {
+  if (fetchedElections) {
+    console.log("✅ fetchedElections:", fetchedElections);
+  }
+  }, [fetchedElections]);
 
-    const handleCreateClick = () => {
-        setSelectedElection(null); // Đảm bảo không có cuộc bầu cử nào được chọn
-        setIsCreateMode(true);
-        setIsModalOpen(true);
-    };    
+  const handleCardClick = (election: IElection) => {
+    setSelectedElection(election);
+    setIsCreateMode(false);
+    setTimeout(() => setIsModalOpen(true), 0);
+  };
+  // --- Khi click vào nút "Tạo cuộc bầu cử" ---
+  const handleCreateClick = () => {
+    setSelectedElection(null);
+    setIsCreateMode(true);
+    setIsModalOpen(true);
+  };
 
-    const closeModal = () => {
-        setIsModalOpen(false);
-        setSelectedElection(null);
-        setIsCreateMode(false)
-    };
-return (
-    <div
-      className="
+  // --- Đóng modal ---
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedElection(null);
+    setIsCreateMode(false);
+    refetch(); // Cập nhật lại danh sách sau khi thêm/sửa
+  };
 
-      "
-    >
-      <main
-        className="
-          col-span-12 sm:col-span-10
-          overflow-y-auto
-        "
-      >
-        <div className="flex justify-between items-center mb-4">
-            <h1 className="text-2xl font-bold">Danh sách các cuộc bầu cử</h1>
-            {/* Nút Tạo cuộc bầu cử */}
-            <button
-                onClick={handleCreateClick}
-                className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded transition duration-300"
-            >
-                Tạo cuộc bầu cử
-            </button>
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen text-gray-500">
+        Đang tải danh sách cuộc bầu cử...
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="flex justify-center items-center h-screen text-red-500">
+        Lỗi khi tải dữ liệu. Vui lòng thử lại.
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-6">
+      <main className="max-w-6xl mx-auto">
+        {/* --- Header --- */}
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-800">
+            Danh sách các cuộc bầu cử
+          </h1>
+          <button
+            onClick={handleCreateClick}
+            className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg transition"
+          >
+            + Tạo cuộc bầu cử
+          </button>
         </div>
-        <div className="text-gray-700">
-            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 min-h-screen bg-gray-50">
-            {elections.map((election) => (
-                <ElectionCard
+
+        {/* --- Grid danh sách bầu cử --- */}
+        {fetchedElections && fetchedElections.data.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {fetchedElections.data.map((election) => (
+              <ElectionCard
                 key={election._id}
                 election={election}
-                onClick={handleCardClick}
-                />
+                onClick={() => handleCardClick(election)}
+              />
             ))}
+          </div>
+        ) : (
+          <div className="text-gray-500 italic">
+            Chưa có cuộc bầu cử nào. Hãy tạo mới để bắt đầu.
+          </div>
+        )}
 
-            <ElectionModal
-                isOpen={isModalOpen}
-                onClose={closeModal}
-                election={selectedElection} 
-                isCreateMode={isCreateMode} 
-            />
-            </div>
-        </div>
+        {/* --- Modal tạo / chỉnh sửa --- */}
+        {isModalOpen && (isCreateMode || selectedElection) && (
+          <ElectionModal
+            isOpen={isModalOpen}
+            onClose={closeModal}
+            election={selectedElection}
+            isCreateMode={isCreateMode}
+          />
+        )}
       </main>
     </div>
   );
-}
+};
 
 export default MainPage;

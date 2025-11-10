@@ -2,18 +2,17 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { UserSignUp, UserLogin, LoginResponse, LogoutResponse} from '../types/auth';
 
 import type { RootState } from './store';
-import { ICandidate, ICandidateCreate, IElection, IElectionCreate, IUser } from '../types/election';
+import { ICandidate, ICandidateCreate, ICandidateResponse, IElection, IElectionCreate, IElectionResponse, IUser } from '../types/election';
 export const apiSlice = createApi({
   reducerPath: '/',
   baseQuery: fetchBaseQuery({ 
     baseUrl:"http://localhost:5000/api/",
     prepareHeaders: (headers, { getState }) => {
       const token = (getState() as RootState).auth.token
-
       if (token) {
-        headers.set('Authorization', `Bearer ${token}`)
+        console.log(JSON.parse(token))
+        headers.set('Authorization', `Bearer ${JSON.parse(token)}`)
       }
-      headers.set('Content-Type', 'application/json')
     return headers
   },
   }),
@@ -22,11 +21,14 @@ export const apiSlice = createApi({
     getUsers: builder.query<IUser[], void>({
       query: () => 'users/',
     }),
-    getCandidateByElectionId: builder.query<ICandidate[], string>({
-      query: (id) => 'candidate/electionId/' + id
+    getCandidateByElectionId: builder.query<ICandidateResponse, string>({
+      query: (id) => `candidates?electionId=${id}`
     }),
     getCandidates: builder.query<ICandidate[], void>({
-      query: () => 'candidate/'
+      query: () => 'candidates/'
+    }),
+    getElections: builder.query<IElectionResponse, void>({
+      query: () => 'elections/'
     }),
     createUser: builder.mutation<IUser, Partial<UserSignUp>>({
       query: (newUser) => ({
@@ -57,14 +59,14 @@ export const apiSlice = createApi({
     }),
     createCandidate: builder.mutation<ICandidate, ICandidateCreate>({
       query: (candidateData) => ({
-        url: "candidate",
+        url: "candidates",
         method: "POST",
         body: candidateData
       })      
     }),
-    creatListCandidate: builder.mutation<ICandidate[], ICandidateCreate[]>({
+    createListCandidate: builder.mutation<ICandidate[], ICandidateCreate[]>({
       query: (candidateData) => ({
-        url: "candidate/list",
+        url: "candidates/multiple",
         method: "POST",
         body: candidateData
       })           

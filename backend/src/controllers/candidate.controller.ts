@@ -157,7 +157,8 @@ export const updateCandidate = async (req: Request, res: Response, next: NextFun
  */
 export const deleteCandidate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const candidate = await Candidate.findById(req.params.id)
+        const { electionId } = req.body
+        const candidate = await Candidate.findOne({_id: req.params.id, electionId: electionId})
         if (!candidate) {
             res.status(404)
             throw new Error('Candidate not found')

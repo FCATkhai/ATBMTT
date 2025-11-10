@@ -10,6 +10,13 @@ export interface IUser{
     comparePassword(candidatePassword: string): Promise<boolean>
 }
 
+export interface IUSerResponse {
+    _id: string,
+    name: string,
+    email: string,
+    
+}
+
 export interface ICandidate{
     _id: string
     name: string
@@ -72,4 +79,9 @@ export interface IResult{
     candidateId: string
     encryptedSum: string // ciphertext tổng phiếu
     decryptedSum?: number | null // chỉ có sau khi giải mã
+}
+
+export interface DeleteCandidateRequest {
+    electionId: string,
+    candidateId: string
 }

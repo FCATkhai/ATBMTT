@@ -58,29 +58,93 @@ const AddCandidateModal: React.FC<AddCandidateModalProps> = ({ isOpen, onClose, 
     const [mode, setMode] = useState<CandidateAddMode>('single'); 
     const [candidateData, setCandidateData] = useState<ICandidateCreate>({
         name: '',
-        image: '', // Chuỗi Base64
+        image: '',
         electionId: electionId || '',
     });
-
+    const [currentProgress, setCurrentProgress] = useState(0);
+    const [totalProgress, setTotalProgress] = useState(0);
     const [batchCandidatesData, setBatchCandidatesData] = useState<ICandidateCreate[]>([])
-
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [selectedCandidateIndex, setSelectedCandidateIndex] = useState<number | null>(null);
-    const [createListCandidate] = apiSlice.endpoints.createListCandidate.useMutation()
+    const [createCandidate] = apiSlice.useCreateCandidateMutation()
+    const [isLoading, setIsLoading] = useState(false);
+
+
+    const resizeImageToBase64 = (
+    file: File,
+    maxWidth = 300,
+    maxHeight = 300,
+    targetKB = 60,
+    maxIterations = 10
+    ): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        const reader = new FileReader();
+
+        reader.onload = e => {
+        img.src = e.target?.result as string;
+        };
+        reader.onerror = reject;
+
+        img.onload = async () => {
+        let width = img.width;
+        let height = img.height;
+
+        // Giảm kích thước nhưng giữ tỉ lệ
+        if (width > height) {
+            if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+            }
+        } else {
+            if (height > maxHeight) {
+            width = (width * maxHeight) / height;
+            height = maxHeight;
+            }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject("Canvas không hỗ trợ");
+        ctx.drawImage(img, 0, 0, width, height);
+
+        let quality = 0.9; // Bắt đầu quality cao
+        let iteration = 0;
+        let base64 = "";
+
+        while (iteration < maxIterations) {
+            base64 = canvas.toDataURL("image/jpeg", quality).split(",")[1];
+            const sizeKB = base64.length * (3/4) / 1024; // chuyển từ base64 -> KB xấp xỉ
+            if (sizeKB <= targetKB || quality <= 0.1) break; // đạt target hoặc quality quá thấp
+            quality -= 0.1; // giảm quality
+            iteration++;
+        }
+
+        resolve(base64);
+        };
+
+        reader.readAsDataURL(file);
+    });
+    };
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setCandidateData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const base64String = reader.result?.toString().split(',')[1] || ''; 
-                setCandidateData(prev => ({ ...prev, image: base64String }));
-            };
-            reader.readAsDataURL(file);
+        if (!file) return;
+
+        try {
+            // Resize và chuyển thành base64
+            const base64String = await resizeImageToBase64(file, 300, 300, 60);
+
+            // Lưu vào state
+            setCandidateData(prev => ({ ...prev, image: base64String }));
+        } catch (err) {
+            console.error("Lỗi xử lý ảnh:", err);
         }
     };
 
@@ -94,15 +158,17 @@ const AddCandidateModal: React.FC<AddCandidateModalProps> = ({ isOpen, onClose, 
         }
     };
 
-    const handleSingleSubmit = (e: React.FormEvent) => {
+    const handleSingleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         const finalCandidateData = { ...candidateData, electionId: electionId || '' };
         if (!finalCandidateData.electionId) {
              alert("Lỗi: Không tìm thấy ID Cuộc Bầu Cử!");
              return;
         }
-        console.log("Dữ liệu Ứng viên gửi đi (Đơn):", finalCandidateData);
-        alert(`Ứng viên ${finalCandidateData.name} đã được thêm thành công (Chế độ Đơn).`);
+        const result = await createCandidate(candidateData);
+        if (result) {
+            alert(`Ứng viên ${finalCandidateData.name} đã được thêm thành công (Chế độ Đơn).`);
+        }
         setCandidateData({ name: '', image: '', electionId: electionId || '' });
         onClose();
     };
@@ -111,6 +177,7 @@ const AddCandidateModal: React.FC<AddCandidateModalProps> = ({ isOpen, onClose, 
         setSelectedFile(e.target.files?.[0] || null);
         setBatchCandidatesData([]); 
     };
+
     const handleBatchSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -119,7 +186,15 @@ const AddCandidateModal: React.FC<AddCandidateModalProps> = ({ isOpen, onClose, 
             return;
         }
 
-        const candidates = await processExcelFile(selectedFile, electionId)
+        const candidates = await processExcelFile<ICandidateCreate>(
+            selectedFile,
+            (row, electionId) => ({
+                name: (row[0] || '').trim(),
+                image: '',
+                electionId
+            }),
+            electionId
+        );
         
         if (candidates && candidates.length > 0){
             setBatchCandidatesData(candidates); 
@@ -147,15 +222,28 @@ const AddCandidateModal: React.FC<AddCandidateModalProps> = ({ isOpen, onClose, 
     const handleFinalBatchSubmit = async () => {
         if (batchCandidatesData.length === 0) return;
 
-        console.log("Dữ liệu Gửi lên API:", batchCandidatesData);
-        const result = await createListCandidate(batchCandidatesData)
+        setIsLoading(true);
+        setCurrentProgress(0);
+        setTotalProgress(batchCandidatesData.length);
 
-        alert(`Đang gửi ${batchCandidatesData.length} ứng viên lên máy chủ.`);
-        
-        setBatchCandidatesData([]);
-        setSelectedFile(null);
-        onClose();
-    }
+        try {
+            for (let i = 0; i < batchCandidatesData.length; i++) {
+                await createCandidate(batchCandidatesData[i]);
+
+                // ✅ Update progress
+                setCurrentProgress(i + 1);
+            }
+
+            alert(`Đã gửi ${batchCandidatesData.length} ứng viên.`);
+            setBatchCandidatesData([]);
+            setSelectedFile(null);
+            onClose();
+        } catch (err) {
+            alert("Có lỗi xảy ra khi gửi danh sách ứng viên!");
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     if (!isOpen) return null;
 
@@ -281,6 +369,28 @@ const AddCandidateModal: React.FC<AddCandidateModalProps> = ({ isOpen, onClose, 
                             </button>
                         </form>
                     </>
+                )}
+                {isLoading && (
+                    <div className="fixed inset-0 bg-black/40 flex flex-col items-center justify-center z-[100] backdrop-blur-sm px-6">
+                        
+                        <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+                            <h3 className="text-center font-semibold text-gray-700 mb-4">
+                                Đang gửi {currentProgress}/{totalProgress} ứng viên...
+                            </h3>
+
+                            {/* Thanh tiến trình */}
+                            <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
+                                <div
+                                    className="bg-blue-600 h-4 transition-all duration-200"
+                                    style={{ width: `${(currentProgress / totalProgress) * 100}%` }}
+                                ></div>
+                            </div>
+
+                            <p className="text-center text-sm text-gray-500 mt-3">
+                                Vui lòng không đóng cửa sổ...
+                            </p>
+                        </div>
+                    </div>
                 )}
             </div>
             

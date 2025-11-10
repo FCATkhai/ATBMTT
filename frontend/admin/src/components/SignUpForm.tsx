@@ -2,7 +2,6 @@ import { FormEvent, useState, ChangeEvent } from "react";
 import { Link } from "react-router";
 import { UserSignUp } from "../types/auth";
 import authApi from "../api/authApi";
-// import authApi from "../api/authApi";
 
 const SignUpForm = () => {
   const [userSignUp, setUserSignUp] = useState<UserSignUp>({
@@ -14,6 +13,7 @@ const SignUpForm = () => {
   const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [error, setError] = useState<string>(""); 
   const [confirmError, setConfirmError] = useState<string>(""); 
+  const [showPass, setShowPass] = useState(false);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -31,7 +31,6 @@ const SignUpForm = () => {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
     if (userSignUp.password !== confirmPassword) {
       setConfirmError("Mật khẩu nhập lại không khớp");
       return;
@@ -40,105 +39,133 @@ const SignUpForm = () => {
     setConfirmError("");
     setError("");
 
-    console.log(userSignUp)
-
-    const result = await authApi.signUp(userSignUp)
-    if (!result) {
-      alert("Lỗi đăng ký")
-      return
+    try {
+      const result = await authApi.signUp(userSignUp);
+      if (!result) {
+        alert("Lỗi đăng ký");
+        return;
+      }
+      alert("Đăng ký thành công");
+    } catch (err: any) {
+      console.error(err);
+      setError(err.response?.data?.message || "Đăng ký thất bại, vui lòng thử lại");
     }
-    alert("Đăng ký thành công")
   };
 
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-col items-center gap-4 w-1/2 min-w-[300px] mx-auto mt-12 p-6 border border-gray-300 rounded-lg shadow-md bg-white"
+      className="
+        flex flex-col gap-5 
+        w-full
+      "
     >
-      <div className="flex justify-between items-center w-full">
-        <label htmlFor="name" className="w-28 font-medium text-gray-700">
-          Họ và tên:
-        </label>
-        <input
-          name="name"
-          type="text"
-          value={userSignUp.name}
-          onChange={handleChange}
-          className="flex-1 border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400"
-        />
+
+      {/* Name */}
+      <div className="flex flex-col gap-1">
+        <label className="text-sm font-medium text-gray-700">Họ và tên</label>
+        <div className="relative">
+          <input
+            name="name"
+            type="text"
+            value={userSignUp.name}
+            onChange={handleChange}
+            placeholder="Nhập họ và tên"
+            className="w-full border border-gray-300 rounded-lg px-10 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm text-gray-700"
+          />
+          <span className="absolute left-3 top-2.5 text-gray-400">👤</span>
+        </div>
       </div>
 
-      <div className="flex justify-between items-center w-full">
-        <label htmlFor="email" className="w-28 font-medium text-gray-700">
-          Email:
-        </label>
-        <input
-          name="email"
-          type="email"
-          value={userSignUp.email}
-          onChange={handleChange}
-          className="flex-1 border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400"
-        />
+      {/* Email */}
+      <div className="flex flex-col gap-1">
+        <label className="text-sm font-medium text-gray-700">Email</label>
+        <div className="relative">
+          <input
+            name="email"
+            type="email"
+            value={userSignUp.email}
+            onChange={handleChange}
+            placeholder="Nhập email"
+            className="w-full border border-gray-300 rounded-lg px-10 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm text-gray-700"
+          />
+          <span className="absolute left-3 top-2.5 text-gray-400">📧</span>
+        </div>
       </div>
 
-      <div className="flex justify-between items-center w-full">
-        <label htmlFor="password" className="w-28 font-medium text-gray-700">
-          Mật khẩu:
-        </label>
-        <input
-          name="password"
-          type="password"
-          value={userSignUp.password}
-          onChange={handleChange}
-          className="flex-1 border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400"
-        />
+      {/* Password */}
+      <div className="flex flex-col gap-1">
+        <label className="text-sm font-medium text-gray-700">Mật khẩu</label>
+        <div className="relative">
+          <input
+            name="password"
+            type={showPass ? "text" : "password"}
+            value={userSignUp.password}
+            onChange={handleChange}
+            placeholder="Nhập mật khẩu"
+            className="w-full border border-gray-300 rounded-lg px-10 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm text-gray-700"
+          />
+          <span className="absolute left-3 top-2.5 text-gray-400">🔒</span>
+        </div>
       </div>
 
-      <div className="flex flex-col w-full">
-        <div className="flex justify-between items-center">
-          <label
-            htmlFor="confirmPassword"
-            className="w-28 font-medium text-gray-700"
-          >
-            Nhập lại mật khẩu:
-          </label>
+      {/* Confirm Password */}
+      <div className="flex flex-col gap-1">
+        <label className="text-sm font-medium text-gray-700">Nhập lại mật khẩu</label>
+        <div className="relative">
           <input
             name="confirmPassword"
-            type="password"
+            type={showPass ? "text" : "password"}
             value={confirmPassword}
             onChange={(e) => handleConfirmPassword(e.target.value)}
-            className={`flex-1 border rounded px-2 py-1 focus:outline-none focus:ring-1 ${
-              confirmError
-                ? "border-red-400 focus:ring-red-400"
-                : "border-gray-300 focus:ring-blue-400"
+            placeholder="Nhập lại mật khẩu"
+            className={`w-full border rounded-lg px-10 py-2 focus:outline-none focus:ring-2 shadow-sm text-gray-700 ${
+              confirmError ? "border-red-400 focus:ring-red-400" : "border-gray-300 focus:ring-blue-400"
             }`}
           />
+          <span className="absolute left-3 top-2.5 text-gray-400">🔒</span>
         </div>
-
-        {confirmError && (
-          <p className="text-red-500 text-sm mt-1 ml-[7rem]">{confirmError}</p>
-        )}
+        {confirmError && <p className="text-red-500 text-sm mt-1">{confirmError}</p>}
       </div>
 
-      <p className="text-gray-700">
+      {/* Show Password */}
+      <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={showPass}
+          onChange={(e) => setShowPass(e.target.checked)}
+          className="accent-blue-600 w-4 h-4"
+        />
+        Hiện mật khẩu
+      </label>
+
+      {/* Error message */}
+      {error && <p className="text-red-500 text-sm">{error}</p>}
+
+      {/* Link to login */}
+      <p className="text-gray-700 text-sm text-center">
         Đã có tài khoản?{" "}
         <Link
           to="/login"
-          className="text-blue-500 hover:text-blue-600 cursor-pointer font-medium transition-colors duration-200"
+          className="text-blue-600 hover:text-blue-700 font-medium"
         >
           Đăng nhập
-        </Link>{" "}
-        tại đây
+        </Link>
       </p>
 
-      {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
-
+      {/* Submit button */}
       <button
         type="submit"
-        className="mt-2 w-full bg-blue-500 text-white font-semibold py-2 rounded hover:bg-blue-600 transition"
+        className="
+          w-full py-2 mt-3 text-white font-semibold rounded-lg
+          bg-gradient-to-r from-blue-500 to-blue-600
+          hover:from-blue-600 hover:to-blue-700
+          shadow-md transition-all duration-200
+        "
       >
         Đăng ký
       </button>
+
     </form>
   );
 };

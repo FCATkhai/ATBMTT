@@ -3,25 +3,6 @@ import ElectionCard from "../components/ElectionCard";
 import { IElection } from "../types/election";
 import ElectionModal from "../components/ElectionModal";
 
-const elections: IElection[] = [
-  {
-    _id: "E2025-001",
-    name: "Bầu cử Chủ tịch năm 2025",
-    startTime: new Date("2025-10-25"),
-    endTime: new Date("2025-10-30"),
-    candidateIds: ["c1", "c2"],
-    status: "upcoming",
-  },
-  {
-    _id: "E2025-002",
-    name: "Bầu cử Hội đồng Sinh viên",
-    startTime: new Date("2025-09-01"),
-    endTime: new Date("2025-09-05"),
-    candidateIds: ["a", "b", "c"],
-    status: "finished",
-  },
-];
-
 const ResultPage = () => {
 
     const [selectedElection, setSelectedElection] = useState<IElection | null>(null);
@@ -63,20 +44,6 @@ return (
         </div>
         <div className="text-gray-700">
             <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 min-h-screen bg-gray-50">
-            {elections.map((election) => (
-                <ElectionCard
-                key={election._id}
-                election={election}
-                onClick={handleCardClick}
-                />
-            ))}
-
-            <ElectionModal
-                isOpen={isModalOpen}
-                onClose={closeModal}
-                election={selectedElection} 
-                isCreateMode={isCreateMode} 
-            />
             </div>
         </div>
     </div>

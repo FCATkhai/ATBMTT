@@ -34,15 +34,15 @@ const LoginForm = () => {
       const res: AxiosResponse<LoginResponse> = await authApi.login(userLogin);
       if(res) {
         console.log(res)
-        if (res.user.role != "admin"){
+        if (res.data.user.role != "admin"){
           alert("Tài khoản hoặc mật khẩu đăng nhập không chính xác")
           dispatch(logout())
           location.reload()
         }
       }
       dispatch(setCredentials({ 
-        user: res.user, 
-        token: res.accessToken 
+        user: res.data.user, 
+        token: res.data.access_token 
       }));
       navigate("/")
     } catch (err: any) {

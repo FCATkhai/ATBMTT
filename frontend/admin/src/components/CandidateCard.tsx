@@ -4,7 +4,7 @@ interface CandidateCardProps {
     candidate: {
         _id: string;
         name: string;
-        image: string; // Base64 encoded image string
+        image: string;
         electionId: string;
     };
     onClick?: (candidateId: string) => void; 

@@ -32,12 +32,22 @@ const ElectionCard: FC<ElectionCardProps> = ({ election, onClick }) => {
         <span className="font-medium text-gray-700">ID:</span> {election._id}
       </p>
       <p className="text-sm text-gray-600 mb-1">
-        <span className="font-medium text-gray-700">Bắt đầu:</span>{" "}
-        {new Date(election.startTime).toLocaleDateString()}
+        Bắt đầu: {new Date(election.startTime).toLocaleString('vi-VN', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })}
       </p>
       <p className="text-sm text-gray-600 mb-3">
-        <span className="font-medium text-gray-700">Kết thúc:</span>{" "}
-        {new Date(election.endTime).toLocaleDateString()}
+        Kết thúc: {new Date(election.endTime).toLocaleString('vi-VN', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })}
       </p>
       <span
         className={`text-xs font-semibold px-3 py-1 rounded-full ${getStatusColor(

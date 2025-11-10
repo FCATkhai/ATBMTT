@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ICandidateCreate } from '../types/election'; 
 import { processExcelFile } from '../services/electionService';
+import apiSlice from '../store/apiSlice';
 
 type CandidateAddMode = 'single' | 'batch';
 
@@ -65,7 +66,7 @@ const AddCandidateModal: React.FC<AddCandidateModalProps> = ({ isOpen, onClose, 
 
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [selectedCandidateIndex, setSelectedCandidateIndex] = useState<number | null>(null);
-
+    const [createListCandidate] = apiSlice.endpoints.createListCandidate.useMutation()
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setCandidateData(prev => ({ ...prev, [name]: value }));
@@ -143,10 +144,12 @@ const AddCandidateModal: React.FC<AddCandidateModalProps> = ({ isOpen, onClose, 
         }
     };
     
-    const handleFinalBatchSubmit = () => {
+    const handleFinalBatchSubmit = async () => {
         if (batchCandidatesData.length === 0) return;
 
         console.log("Dữ liệu Gửi lên API:", batchCandidatesData);
+        const result = await createListCandidate(batchCandidatesData)
+
         alert(`Đang gửi ${batchCandidatesData.length} ứng viên lên máy chủ.`);
         
         setBatchCandidatesData([]);

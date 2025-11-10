@@ -1,11 +1,11 @@
 import * as XLSX from 'xlsx';
-import { ICandidateCreate } from '../types/election';
 
 
-export const processExcelFile = (
+export const processExcelFile = <T>(
     file: File, 
-    electionId: string | null
-): Promise<ICandidateCreate[] | null> => {
+    mapRowToData: (row: any[], electionId: string) => T,
+    electionId: string
+): Promise<T[] | null> => {
 
     return new Promise((resolve) => {
         if (!file || !electionId) {
@@ -30,26 +30,18 @@ export const processExcelFile = (
                 const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
                 
                 if (jsonData.length <= 1) {
-                    alert("Tệp không có dữ liệu ứng viên.");
+                    alert("Tệp không có dữ liệu.");
                     resolve([]);
                     return;
                 }
 
                 const rows = jsonData.slice(1);
-                
-                const candidates: ICandidateCreate[] = rows.map(row => {
-                    const dataRow = row as any[]; 
-                    const name = (dataRow[0] as string || '').trim(); 
 
-                    return {
-                        name: name,
-                        image: '',           
-                        electionId: electionId 
-                    };
-                    
-                }).filter(candidate => candidate.name.length > 0);
+                const result: T[] = rows
+                    .map(row => mapRowToData(row as any[], electionId))
+                    .filter(item => item != null);
 
-                resolve(candidates);
+                resolve(result);
 
             } catch (error) {
                 console.error("Lỗi khi xử lý file Excel:", error);

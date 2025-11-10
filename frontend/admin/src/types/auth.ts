@@ -14,7 +14,8 @@ export interface UserSignUp {
     email: string,
     password: string,
     name: string,
-    role: string
+    role: string,
+    electionId?: string | null
 }
 export interface SignUpResponse extends Response {
     user: IUser

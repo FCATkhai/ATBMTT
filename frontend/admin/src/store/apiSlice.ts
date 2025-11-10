@@ -2,7 +2,12 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { UserSignUp, UserLogin, LoginResponse, LogoutResponse} from '../types/auth';
 
 import type { RootState } from './store';
-import { ICandidate, ICandidateCreate, ICandidateResponse, IElection, IElectionCreate, IElectionResponse, IUser } from '../types/election';
+import { DeleteCandidateRequest, ICandidate, ICandidateCreate, ICandidateResponse, IElection, IElectionCreate, IElectionResponse, IUser } from '../types/election';
+
+
+
+
+
 export const apiSlice = createApi({
   reducerPath: '/',
   baseQuery: fetchBaseQuery({ 
@@ -10,8 +15,8 @@ export const apiSlice = createApi({
     prepareHeaders: (headers, { getState }) => {
       const token = (getState() as RootState).auth.token
       if (token) {
-        console.log(JSON.parse(token))
-        headers.set('Authorization', `Bearer ${JSON.parse(token)}`)
+        console.log(token)
+        headers.set('Authorization', `Bearer ${token.replace(/^"(.*)"$/, '$1')}`)
       }
     return headers
   },
@@ -24,6 +29,9 @@ export const apiSlice = createApi({
     getCandidateByElectionId: builder.query<ICandidateResponse, string>({
       query: (id) => `candidates?electionId=${id}`
     }),
+    getUsersByElectionId: builder.query<IUser[], string>({
+      query: (id) => `users?electionId=${id}`
+    }),    
     getCandidates: builder.query<ICandidate[], void>({
       query: () => 'candidates/'
     }),
@@ -71,7 +79,13 @@ export const apiSlice = createApi({
         body: candidateData
       })           
     }),
-
+    deleteCandidate: builder.mutation<boolean, DeleteCandidateRequest>({
+      query: (candidate) => ({
+        url: "candidate/"+candidate.candidateId,
+        method: "DELETE",
+        body: candidate
+      })
+    })
   })
 })
 

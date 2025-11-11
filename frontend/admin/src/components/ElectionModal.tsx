@@ -46,7 +46,7 @@ const ElectionModal: React.FC<ElectionModalProps> = ({ isOpen, onClose, election
     { isLoading: isDeletingCandidate }
   ] = apiSlice.endpoints.deleteCandidate.useMutation();
 
-  const [updateUser] = apiSlice.useUpdateUserMutation();
+  const [deleteUser] = apiSlice.useDeleteUserMutation();
 
   useEffect(() => {
     if (isOpen && !isCreateMode && election?._id) {
@@ -166,7 +166,7 @@ const ElectionModal: React.FC<ElectionModalProps> = ({ isOpen, onClose, election
 
     try {
       setIsDeletingUser(true)
-      await updateUser({
+      await deleteUser({
         userId: voterId,
         electionId: null
       }).unwrap();

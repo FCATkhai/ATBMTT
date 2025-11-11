@@ -41,7 +41,7 @@ function HeaderComponent() {
 
         <li>
           <Link
-            to="/result"
+            to="/results"
             className="
               flex items-center gap-3 p-3 rounded-lg
               text-gray-700 font-medium

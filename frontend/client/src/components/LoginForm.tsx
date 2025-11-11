@@ -1,5 +1,5 @@
 import { ChangeEvent, FormEvent, useState } from "react"
-import { Link, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import authApi from "../api/authApi";
 import { LoginResponse, UserLogin } from "../types/auth";
 import { AxiosResponse } from "axios";
@@ -116,17 +116,6 @@ const LoginForm = () => {
 
       {/* Error message */}
       {error && <p className="text-red-500 text-sm">{error}</p>}
-
-      {/* Register */}
-      <p className="text-gray-700 text-sm text-center">
-        Không có tài khoản?{" "}
-        <Link
-          to="/signup"
-          className="text-blue-600 hover:text-blue-700 font-medium"
-        >
-          Đăng ký
-        </Link>
-      </p>
 
       {/* Submit button */}
       <button

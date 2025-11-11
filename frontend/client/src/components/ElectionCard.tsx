@@ -60,6 +60,7 @@ const ElectionCard: FC<ElectionCardProps> = ({ election, onClick }) => {
           ? "Sắp diễn ra"
           : "Đã kết thúc"}
       </span>
+      <p>{election.status}</p>
     </div>
   );
 };

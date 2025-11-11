@@ -1,10 +1,9 @@
 import axiosClient from "./axiosClient";
-import { UserLogin, UserSignUp } from "../types/auth";
+import { UserLogin} from "../types/auth";
 
 const authApi = {
-  signUp: (data: UserSignUp) => axiosClient.post("/auth/signup", data),
   login: (data: UserLogin) =>
-    axiosClient.post("/auth/login", data),
+    axiosClient.post("users/login", data),
   getProfile: () => axiosClient.get("/auth/me"),
 };
 

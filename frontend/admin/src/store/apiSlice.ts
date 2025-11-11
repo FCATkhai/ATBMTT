@@ -1,8 +1,8 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import type { UserSignUp, UserLogin, LoginResponse, LogoutResponse} from '../types/auth';
+import type { UserSignUp, UserLogin, LoginResponse, LogoutResponse, UsersResponse, ApiResponse} from '../types/auth';
 
 import type { RootState } from './store';
-import { DeleteCandidateRequest, ICandidate, ICandidateCreate, ICandidateResponse, IElection, IElectionCreate, IElectionResponse, IUser } from '../types/election';
+import { DeleteCandidateRequest, ICandidate, ICandidateCreate, ICandidateResponse, IElection, IElectionCreate, IElectionResponse, IResult, IUser, UpdateUserRequest } from '../types/election';
 
 
 
@@ -15,11 +15,11 @@ export const apiSlice = createApi({
     prepareHeaders: (headers, { getState }) => {
       const token = (getState() as RootState).auth.token
       if (token) {
-        console.log(token)
-        headers.set('Authorization', `Bearer ${token.replace(/^"(.*)"$/, '$1')}`)
+        console.log(token.replace(/"/g, ''))
+        headers.set('Authorization', `Bearer ${token.replace(/"/g, '')}`)
       }
     return headers
-  },
+    },
   }),
 
   endpoints: (builder) => ({
@@ -29,7 +29,7 @@ export const apiSlice = createApi({
     getCandidateByElectionId: builder.query<ICandidateResponse, string>({
       query: (id) => `candidates?electionId=${id}`
     }),
-    getUsersByElectionId: builder.query<IUser[], string>({
+    getUsersByElectionId: builder.query<UsersResponse, string>({
       query: (id) => `users?electionId=${id}`
     }),    
     getCandidates: builder.query<ICandidate[], void>({
@@ -40,11 +40,25 @@ export const apiSlice = createApi({
     }),
     createUser: builder.mutation<IUser, Partial<UserSignUp>>({
       query: (newUser) => ({
-        url: "users",
+        url: "users/register",
         method: "POST",
         body:  newUser
       })
     }),
+    updateUser: builder.mutation<IUser, UpdateUserRequest>({
+      query: (patchData) => ({
+        url: "/users/"+ patchData.userId,
+        method: "PATCH",
+        body: patchData
+      })
+    }),
+    deleteUser: builder.mutation<IUser, UpdateUserRequest>({
+      query: (patchData) => ({
+        url: "/users/"+ patchData.userId,
+        method: "DELETE",
+        body: patchData
+      })
+    }),    
     loginUser: builder.mutation<LoginResponse, UserLogin>({
       query: (loginData) => ({
         url: "users/login",
@@ -85,7 +99,10 @@ export const apiSlice = createApi({
         method: "DELETE",
         body: candidate
       })
-    })
+    }),
+    getElectionResults: builder.query<ApiResponse<IResult>, string>({
+      query: (electionId: string) => "results/"+electionId,
+    }),
   })
 })
 

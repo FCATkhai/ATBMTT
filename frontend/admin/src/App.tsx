@@ -9,6 +9,7 @@ import HeaderComponent from './components/HeaderComponent'
 import ResultPage from './pages/ResultPage'
 import { useSelector } from 'react-redux'
 import { RootState } from './store/store'
+import ResultListPage from './pages/ResultListPage'
 
 function App() {
 
@@ -30,7 +31,8 @@ function App() {
           
           {/* Các Route cần đăng nhập (AdminRoute) */}
           <Route path='/' element={<AdminRoute element={<MainPage />}/>}/>
-          <Route path='/result' element={<AdminRoute element={<ResultPage />}/>}/>
+          <Route path='/results' element={<AdminRoute element={<ResultListPage />}/>}/>
+          <Route path="/results/:electionId" element={<ResultPage />}/>
         </Routes>
         {/* <footer> */}
         {/* <FooterComponent /> */}

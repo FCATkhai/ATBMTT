@@ -17,6 +17,11 @@ export interface IUSerResponse {
     
 }
 
+export interface UpdateUserRequest {
+    userId: string,
+    electionId: string | null
+}
+
 export interface ICandidate{
     _id: string
     name: string
@@ -74,14 +79,21 @@ export interface IBallot{
     // hashThis: string
 }
 
-export interface IResult{
-    electionId: string
-    candidateId: string
-    encryptedSum: string // ciphertext tổng phiếu
-    decryptedSum?: number | null // chỉ có sau khi giải mã
-}
+
 
 export interface DeleteCandidateRequest {
     electionId: string,
     candidateId: string
+}
+export type tally = {
+    candidateId: string
+    encryptedSum: string 
+    decryptedSum: number 
+}
+export interface IResult extends Document {
+    _id: string
+    electionId: string
+    tallies: tally[]
+    createdAt: Date
+    updatedAt: Date
 }

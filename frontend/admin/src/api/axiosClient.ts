@@ -1,5 +1,6 @@
 import axios, { AxiosError, AxiosInstance } from "axios";
 
+
 const axiosClient: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api", 
   headers: {
@@ -13,7 +14,9 @@ axiosClient.interceptors.request.use(
     if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    Promise.reject(error)
+  }
 );
 
 axiosClient.interceptors.response.use(

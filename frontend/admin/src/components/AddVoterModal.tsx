@@ -82,12 +82,16 @@ const AddVoterModal: React.FC<AddVoterModalProps> = ({ isOpen, onClose, election
             email,
             password: generateRandomPassword(),
             name: generateNameFromEmail(email),
-            role: "user"
+            role: "voter"
         };
 
         try {
-            await createUser({ electionId, ...user }).unwrap();
-            alert(`Đã thêm cử tri: ${user.email}`);
+            const createdUser = await createUser({ electionId, ...user }).unwrap();
+            if (createdUser) {
+
+                alert(`Đã thêm cử tri: ${user.email} có mật khẩu ${user.password}`);
+            }
+            
             setEmail("");
             onClose();
         } catch (err) {

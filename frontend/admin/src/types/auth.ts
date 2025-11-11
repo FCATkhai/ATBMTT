@@ -27,3 +27,11 @@ export interface LoginResponse extends Response {
 export interface LogoutResponse extends Response {
 
 }
+export interface UsersResponse {
+    message: string,
+    data: IUser[]
+}
+export interface ApiResponse<T> {
+    message: string,
+    data: T
+}

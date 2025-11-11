@@ -2,7 +2,7 @@ import type { ICandidate, IElection } from '~/@types/dbInterfaces'
 import Candidate from '~/models/candidate.model'
 import Election from '~/models/election.model'
 import { Model } from 'mongoose'
-import AppError from '~/utils/appError'
+import AppError from '~/utils/AppError'
 
 class CandidateService {
     private candidateModel: Model<ICandidate>

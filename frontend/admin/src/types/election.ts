@@ -17,6 +17,11 @@ export interface IUSerResponse {
     
 }
 
+export interface UpdateUserRequest {
+    userId: string,
+    electionId: string | null
+}
+
 export interface ICandidate{
     _id: string
     name: string

@@ -9,4 +9,10 @@ export default defineConfig({
     port: 3002, // đổi sang port bạn muốn
     open: true, // (tùy chọn) tự mở trình duyệt
   },
+  resolve: {
+    alias: {
+      crypto: "crypto-browserify",
+      stream: "stream-browserify"
+    }
+  }
 })

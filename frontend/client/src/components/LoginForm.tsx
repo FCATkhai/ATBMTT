@@ -1,16 +1,20 @@
 import { ChangeEvent, FormEvent, useState } from "react"
+import { Link, useNavigate } from "react-router";
 import authApi from "../api/authApi";
-import { UserLogin } from "../types/auth";
+import { LoginResponse, UserLogin } from "../types/auth";
+import { AxiosResponse } from "axios";
+import { useDispatch } from "react-redux";
+import { logout, setCredentials } from "../store/authSlice";
 
 const LoginForm = () => {
   const [userLogin, setUserLogin] = useState<UserLogin>({
     email: "",
-    password: "",
-    role: "admin"
+    password: ""
   });
-
+  const dispatch = useDispatch()
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
+  const navigate = useNavigate()
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -26,10 +30,20 @@ const LoginForm = () => {
     setError("");
 
     try {
-      const res = await authApi.login(userLogin);
-      console.log("Đăng nhập thành công:", res);
-      // Lưu token, chuyển hướng...
-      // localStorage.setItem("token", res.token);
+      const res: AxiosResponse<LoginResponse> = await authApi.login(userLogin);
+      if (res) {
+        if (res.data.user.role !== "admin") {
+          alert("Tài khoản hoặc mật khẩu đăng nhập không chính xác");
+          dispatch(logout());
+          location.reload();
+        }
+      }
+
+      dispatch(setCredentials({
+        user: res.data.user,
+        token: res.data.access_token.replace(/^"(.*)"$/, '$1')
+      }));
+      navigate("/");
     } catch (err: any) {
       console.error(err);
       setError(err.response?.data?.message || "Đăng nhập thất bại, vui lòng thử lại");
@@ -39,54 +53,94 @@ const LoginForm = () => {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-col items-center gap-4 w-1/2 min-w-[300px] mx-auto mt-12 p-6 border border-gray-300 rounded-lg shadow-md bg-white"
+      className="
+        flex flex-col gap-5 
+        w-full
+      "
     >
-      <div className="flex justify-between items-center w-full">
-        <label htmlFor="email" className="w-28 font-medium text-gray-700">
-          Email:
-        </label>
-        <input
-          name="email"
-          type="email"
-          value={userLogin.email}
-          onChange={handleChange}
-          className="flex-1 border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400"
-        />
-      </div>
 
-      <div className="flex justify-between items-center w-full">
-        <label htmlFor="password" className="w-28 font-medium text-gray-700">
-          Mật khẩu:
-        </label>
-        <input
-          name="password"
-          type={showPass ? "text" : "password"}
-          value={userLogin.password}
-          onChange={handleChange}
-          className="flex-1 border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400"
-        />
-      </div>
-
-      <div className="w-full text-left text-sm text-gray-700 p-5">
-        <label className="flex items-center gap-1 cursor-pointer">
+      {/* Email */}
+      <div className="flex flex-col gap-1">
+        <label className="text-sm font-medium text-gray-700">Email</label>
+        <div className="relative">
           <input
-            type="checkbox"
-            checked={showPass}
-            onChange={handleShowPass}
-            className="accent-blue-500"
+            name="email"
+            type="email"
+            value={userLogin.email}
+            onChange={handleChange}
+            className="
+              w-full border border-gray-300 rounded-lg px-10 py-2
+              focus:outline-none focus:ring-2 focus:ring-blue-400
+              shadow-sm text-gray-700
+            "
+            placeholder="Nhập email"
           />
-          Hiện mật khẩu
-        </label>
+          <span className="absolute left-3 top-2.5 text-gray-400">
+            📧
+          </span>
+        </div>
       </div>
 
+      {/* Password */}
+      <div className="flex flex-col gap-1">
+        <label className="text-sm font-medium text-gray-700">Mật khẩu</label>
+        <div className="relative">
+          <input
+            name="password"
+            type={showPass ? "text" : "password"}
+            value={userLogin.password}
+            onChange={handleChange}
+            className="
+              w-full border border-gray-300 rounded-lg px-10 py-2
+              focus:outline-none focus:ring-2 focus:ring-blue-400
+              shadow-sm text-gray-700
+            "
+            placeholder="Nhập mật khẩu"
+          />
+          <span className="absolute left-3 top-2.5 text-gray-400">
+            🔒
+          </span>
+        </div>
+      </div>
+
+      {/* Show password */}
+      <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={showPass}
+          onChange={handleShowPass}
+          className="accent-blue-600 w-4 h-4"
+        />
+        Hiện mật khẩu
+      </label>
+
+      {/* Error message */}
       {error && <p className="text-red-500 text-sm">{error}</p>}
 
+      {/* Register */}
+      <p className="text-gray-700 text-sm text-center">
+        Không có tài khoản?{" "}
+        <Link
+          to="/signup"
+          className="text-blue-600 hover:text-blue-700 font-medium"
+        >
+          Đăng ký
+        </Link>
+      </p>
+
+      {/* Submit button */}
       <button
         type="submit"
-        className="mt-2 w-full bg-blue-500 text-white font-semibold py-2 rounded hover:bg-blue-600 transition"
+        className="
+          w-full py-2 mt-3 text-white font-semibold rounded-lg
+          bg-gradient-to-r from-blue-500 to-blue-600
+          hover:from-blue-600 hover:to-blue-700
+          shadow-md transition-all duration-200
+        "
       >
         Đăng nhập
       </button>
+
     </form>
   );
 };

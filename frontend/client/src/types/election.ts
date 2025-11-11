@@ -1,3 +1,9 @@
+
+
+export type ClickedStatusMap = {
+    [electionId: string]: boolean
+}
+
 export type UserRole = 'voter' | 'admin'
 
 export interface IUser{
@@ -10,6 +16,18 @@ export interface IUser{
     comparePassword(candidatePassword: string): Promise<boolean>
 }
 
+export interface IUSerResponse {
+    _id: string,
+    name: string,
+    email: string,
+    
+}
+
+export interface UpdateUserRequest {
+    userId: string,
+    electionId: string | null
+}
+
 export interface ICandidate{
     _id: string
     name: string
@@ -17,18 +35,45 @@ export interface ICandidate{
     electionId: string
 }
 
+export interface ICandidateResponse{
+    data: ICandidate[]
+}
+
+export interface ICandidateCreate {
+    name: string,
+    image: string,
+    electionId: string
+}
 
 export type ElectionStatus = 'upcoming' | 'running' | 'finished'
+
+export type PublicKeyType = {
+    g: string,
+    n: string,
+    n2: string
+}
 
 export interface IElection{
     _id: string
     name: string
     startTime: Date
     endTime: Date
+    publicKey: PublicKeyType
     candidateIds: string[]
     status: ElectionStatus
 }
 
+export interface IElectionResponse {
+    data: IElection[]
+}
+
+export interface IElectionCreate {
+    name: string,
+    startTime: Date,
+    endTime: Date,
+    publicKey: PublicKeyType,
+    status: ElectionStatus
+}
 
 export interface IBallot{
     _id: string
@@ -40,6 +85,12 @@ export interface IBallot{
     // hashThis: string
 }
 
+export interface IBallotRequest {
+    voterId: string,
+    electionId: string,
+    encryptedVotes: string
+}
+
 export interface IResult{
     electionId: string
     candidateId: string
@@ -47,6 +98,7 @@ export interface IResult{
     decryptedSum?: number | null // chỉ có sau khi giải mã
 }
 
-export type ClickedStatusMap = {
-    [electionId: string]: boolean
+export interface DeleteCandidateRequest {
+    electionId: string,
+    candidateId: string
 }

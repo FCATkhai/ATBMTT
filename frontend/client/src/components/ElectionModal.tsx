@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
 import React from "react"; 
 import { DeleteCandidateRequest, ElectionStatus, ICandidate, IElection, IElectionCreate, PublicKeyType } from "../types/election";
-import AddCandidateModal from "./AddCandidateModal";
 import CandidateList from "./CandidateList";
 import apiSlice from "../store/apiSlice";
 import { generatePaillierKey } from "../utils/pailer";
-import AddVoterModal from "./AddVoterModal";
 
 interface ElectionModalProps {
   isOpen: boolean;
@@ -18,7 +16,6 @@ const ElectionModal: React.FC<ElectionModalProps> = ({ isOpen, onClose, election
 
   const [isCandidateModalOpen, setIsCandidateModalOpen] = useState(false);
   const [calculatedStatus, setCalculatedStatus] = useState<ElectionStatus>('upcoming');
-  const [createElection] = apiSlice.endpoints.createElection.useMutation()
   const [isVoterModalOpen, setIsVoterModalOpen] = useState(false);
   const [publicKeyParams, setPublicKeyParams] = useState({ keyLength: 10n });
   const [candidateList, setCandidateList] = useState<ICandidate[]>([]);
@@ -36,30 +33,13 @@ const ElectionModal: React.FC<ElectionModalProps> = ({ isOpen, onClose, election
     { data: fetchedCandidatesData, isLoading: isLoadingCandidates, isError: isErrorCandidates, isSuccess: isCandidatesSuccess }
   ] = apiSlice.endpoints.getCandidateByElectionId.useLazyQuery(); 
   
-  const [
-    getUsersByElectionId, 
-    { data: fetchedUsersData }
-  ] = apiSlice.endpoints.getUsersByElectionId.useLazyQuery(); 
 
-  const [
-    deleteCandidate, 
-    { isLoading: isDeletingCandidate }
-  ] = apiSlice.endpoints.deleteCandidate.useMutation();
-
-  const [updateUser] = apiSlice.useUpdateUserMutation();
 
   useEffect(() => {
     if (isOpen && !isCreateMode && election?._id) {
       getCandidateByElectionId(election._id);
-      getUsersByElectionId(election._id);
     }
-  }, [isOpen, isCreateMode, election?._id, getCandidateByElectionId, getUsersByElectionId]);
-
-  useEffect(() => {
-    if (fetchedUsersData) {
-      console.log("Fetched users:", fetchedUsersData.data);
-    }
-  }, [fetchedUsersData]);
+  }, [isOpen, isCreateMode, election?._id, getCandidateByElectionId]);
 
   useEffect(() => {
     if (isCandidatesSuccess && fetchedCandidatesData) {
@@ -105,33 +85,6 @@ const ElectionModal: React.FC<ElectionModalProps> = ({ isOpen, onClose, election
     }
   };
 
-  const handleCreateSubmit = async () => {
-    if (newElectionData.startTime >= newElectionData.endTime) {
-      alert("Thời gian bắt đầu phải trước thời gian kết thúc.");
-      return;
-    }
-
-    const { keyLength } = publicKeyParams;
-    let publicKey: PublicKeyType;
-    try {
-      publicKey = await generatePaillierKey(keyLength);
-    } catch (error) {
-      console.error(error);
-      return;
-    }
-
-    const finalData = {
-      ...newElectionData,
-      publicKey,
-      status: calculateStatus(newElectionData.startTime, newElectionData.endTime)
-    };
-
-    console.log("Dữ liệu Cuộc Bầu Cử Mới (FINAL):", finalData);
-    await createElection(finalData);
-    alert(`Đã chuẩn bị tạo cuộc bầu cử: ${finalData.name} (Status: ${finalData.status}).`);
-    onClose();
-  };
-
   const handleAddCandidateClick = () => {
     if (isCreateMode) { alert("Vui lòng tạo cuộc bầu cử trước khi thêm ứng viên."); return; }
     if (election?.status === 'finished') { alert("Cuộc bầu cử đã kết thúc."); return; }
@@ -142,41 +95,6 @@ const ElectionModal: React.FC<ElectionModalProps> = ({ isOpen, onClose, election
     if (isCreateMode) { alert("Vui lòng tạo cuộc bầu cử trước khi quản lý cử tri."); return; }
     if (election?.status === 'finished') { alert("Cuộc bầu cử đã kết thúc."); return; }
     setIsVoterModalOpen(true);
-  };
-
-  const handleDeleteCandidate = async (candidateId: string) => {
-    if (isDeletingCandidate) return;
-    if (!window.confirm("Bạn có chắc chắn muốn xóa ứng viên này không?")) return;
-
-    const deleteCandidateRequest: DeleteCandidateRequest = {
-      candidateId,
-      electionId: election?._id || "error"
-    };
-    try {
-      await deleteCandidate(deleteCandidateRequest).unwrap();
-      setCandidateList(prev => prev.filter(c => c._id !== candidateId));
-      alert("Xóa ứng viên thành công.");
-    } catch {
-      alert("Lỗi khi xóa ứng viên.");
-    }
-  };
-
-  const handleDeleteVoter = async (voterId: string) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa cử tri này không?")) return;
-
-    try {
-      setIsDeletingUser(true)
-      await updateUser({
-        userId: voterId,
-        electionId: null
-      }).unwrap();
-
-      alert("Xóa cử tri thành công.");
-      setIsDeletingUser(false)
-    }
-    catch(error) {
-      alert(error)
-    }
   };
 
   const closeCandidateModal = () => setIsCandidateModalOpen(false);
@@ -237,7 +155,7 @@ const ElectionModal: React.FC<ElectionModalProps> = ({ isOpen, onClose, election
                 <label htmlFor="endTime" className="block text-lg font-medium text-gray-700">Thời gian kết thúc</label>
                 <input type="datetime-local" name="endTime" value={toLocalDatetimeString(newElectionData.endTime)} onChange={handleCreateInputChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 text-lg"/>
               </div>
-              <button onClick={handleCreateSubmit} className="mt-4 bg-green-500 hover:bg-green-600 text-white py-3 px-6 rounded text-lg">Tạo và Lưu</button>
+              
             </div>
           </div>
         ) : (

@@ -1,8 +1,8 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import type { UserLogin, LoginResponse} from '../types/auth';
+import type { UserLogin, LoginResponse, ApiResponse} from '../types/auth';
 
 import type { RootState } from './store';
-import { ICandidate, IUser } from '../types/election';
+import { IBallot, IBallotRequest, ICandidate, ICandidateResponse, IElection, IElectionResponse, IUser } from '../types/election';
 export const apiSlice = createApi({
   reducerPath: '/',
   baseQuery: fetchBaseQuery({ 
@@ -11,7 +11,7 @@ export const apiSlice = createApi({
       const token = (getState() as RootState).auth.token
 
       if (token) {
-        headers.set('Authorization', `Bearer ${token}`)
+        headers.set('Authorization', `Bearer ${token.replace(/"/g, '')}`)
       }
       headers.set('Content-Type', 'application/json')
     return headers
@@ -22,11 +22,17 @@ export const apiSlice = createApi({
     getUsers: builder.query<IUser[], void>({
       query: () => 'users/',
     }),
-    getCandidateByElectionId: builder.query<ICandidate[], string>({
-      query: (id) => 'candidate/electionId/' + id
+    getCandidateByElectionId: builder.query<ICandidateResponse, string>({
+      query: (id) => `candidates?electionId=${id}`
     }),
     getCandidates: builder.query<ICandidate[], void>({
       query: () => 'candidate/'
+    }),
+    getElectionsByUserId: builder.query<IElectionResponse, string>({
+      query: (id) => 'elections/user/'+id
+    }),
+    getElectionById: builder.query<ApiResponse<IElection>, string>({
+      query: (electionId) => 'elections/'+electionId
     }),
     loginUser: builder.mutation<LoginResponse, UserLogin>({
       query: (loginData) => ({
@@ -35,6 +41,13 @@ export const apiSlice = createApi({
         body: loginData
       })
     }),
+    voteCandidate: builder.mutation<ApiResponse<IBallot>, IBallotRequest>({
+      query: (ballotData) => ({
+        url: "ballot/",
+        method: "POST",
+        body: ballotData
+      })      
+    })
 
   })
 })

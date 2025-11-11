@@ -5,6 +5,7 @@ import TokenBlacklist from '~/models/tokenBlackList.model'
 import jwt, { type JwtPayload } from 'jsonwebtoken'
 import userService from '~/services/user.service'
 import dotenv from 'dotenv'
+import transporter from '~/utils/mail'
 
 dotenv.config()
 
@@ -36,6 +37,24 @@ export const createUser = async (req: Request, res: Response, next: NextFunction
         })
 
         await newUser.save()
+
+        // Gửi email chào mừng
+        const mailOptions = {
+            from: 'npkhai2004@gmail.com',
+            to: email,
+            subject: 'Chào mừng bạn đến với hệ thống bầu cử',
+            html: `<p>Xin chào ${name},</p>
+                    <p>Bạn đã được đăng ký tài khoản trong hệ thống bầu cử của chúng tôi.</p>
+                    <p>Thông tin đăng nhập của bạn là:</p>
+                    <ul>
+                        <li>Email: ${email}</li>
+                        <li>Mật khẩu: ${password}</li>
+                    </ul>
+                    <p>Chúng tôi rất vui được hỗ trợ bạn trong quá trình bầu cử.</p>
+                    <p>Trân trọng,<br/>Đội ngũ Bầu cử</p>`
+        }
+
+        await transporter.sendMail(mailOptions)
 
         res.status(201).json({ success: true, message: 'User created successfully', data: newUser })
     } catch (error: unknown) {
@@ -124,9 +143,9 @@ export const getAllUsers = async (req: Request, res: Response, next: NextFunctio
     try {
         const { electionId } = req.query
 
-        const filter: Record<string, any> = {};
+        const filter: Record<string, any> = {}
         if (electionId) {
-            filter.electionId = electionId;
+            filter.electionId = electionId
         }
 
         const users = await User.find(filter).select('-password')

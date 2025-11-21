@@ -7,13 +7,14 @@ export interface IUser{
     password: string
     role: UserRole
     electionId?: string | null
-    comparePassword(candidatePassword: string): Promise<boolean>
+    hasVoted: boolean
 }
 
 export interface IUSerResponse {
-    _id: string,
-    name: string,
-    email: string,
+    user: IUser
+    success: boolean
+    existed: IUser
+    message: string
     
 }
 
@@ -85,6 +86,11 @@ export interface DeleteCandidateRequest {
     electionId: string,
     candidateId: string
 }
+
+export interface DeleteElectionRequest {
+    electionId: string
+}
+
 export type tally = {
     candidateId: string
     encryptedSum: string 

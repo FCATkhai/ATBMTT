@@ -2,7 +2,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { UserLogin, LoginResponse, ApiResponse} from '../types/auth';
 
 import type { RootState } from './store';
-import { IBallot, IBallotRequest, ICandidate, ICandidateResponse, IElection, IElectionResponse, IUser } from '../types/election';
+import { IBallot, IBallotRequest, ICandidate, ICandidateResponse, IElection, IElectionResponse, IResult, IUser } from '../types/election';
 export const apiSlice = createApi({
   reducerPath: '/',
   baseQuery: fetchBaseQuery({ 
@@ -43,11 +43,15 @@ export const apiSlice = createApi({
     }),
     voteCandidate: builder.mutation<ApiResponse<IBallot>, IBallotRequest>({
       query: (ballotData) => ({
-        url: "ballot/",
+        url: "ballots/",
         method: "POST",
         body: ballotData
       })      
-    })
+    }),
+    getElectionResults: builder.query<ApiResponse<IResult>, string>({
+      query: (electionId) => `results/${electionId}`,
+      // providesTags: ['Result']
+    }),
 
   })
 })

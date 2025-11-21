@@ -2,7 +2,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { UserSignUp, UserLogin, LoginResponse, LogoutResponse, UsersResponse, ApiResponse} from '../types/auth';
 
 import type { RootState } from './store';
-import { DeleteCandidateRequest, ICandidate, ICandidateCreate, ICandidateResponse, IElection, IElectionCreate, IElectionResponse, IResult, IUser, UpdateUserRequest } from '../types/election';
+import { DeleteCandidateRequest, DeleteElectionRequest, ICandidate, ICandidateCreate, ICandidateResponse, IElection, IElectionCreate, IElectionResponse, IResult, IUser, IUSerResponse, UpdateUserRequest } from '../types/election';
 
 
 
@@ -38,14 +38,21 @@ export const apiSlice = createApi({
     getElections: builder.query<IElectionResponse, void>({
       query: () => 'elections/'
     }),
-    createUser: builder.mutation<IUser, Partial<UserSignUp>>({
+    updateElection: builder.mutation<IElection, { electionId: string; data: Partial<IElectionCreate> }>({
+      query: ({ electionId, data }) => ({
+        url: `elections/${electionId}`,
+        method: "PATCH",
+        body: data,
+      }),
+    }),
+    createUser: builder.mutation<IUSerResponse, Partial<UserSignUp>>({
       query: (newUser) => ({
         url: "users/register",
         method: "POST",
         body:  newUser
       })
     }),
-    updateUser: builder.mutation<IUser, UpdateUserRequest>({
+    updateUser: builder.mutation<IUSerResponse, UpdateUserRequest>({
       query: (patchData) => ({
         url: "/users/"+ patchData.userId,
         method: "PATCH",
@@ -95,13 +102,41 @@ export const apiSlice = createApi({
     }),
     deleteCandidate: builder.mutation<boolean, DeleteCandidateRequest>({
       query: (candidate) => ({
-        url: "candidate/"+candidate.candidateId,
+        url: "candidates/"+candidate.candidateId,
         method: "DELETE",
         body: candidate
       })
     }),
+    deleteElection: builder.mutation<boolean, DeleteElectionRequest>({
+      query: (election) => ({
+        url: "elections/"+election.electionId,
+        method: "DELETE",
+        body: election
+      })
+    }),
+    // 1. Trigger việc kiểm phiếu (Server thực hiện cộng đồng cấu)
+    countElection: builder.mutation<ApiResponse<IResult>, string>({
+      query: (electionId) => ({
+        url: `results/count/${electionId}`,
+        method: 'POST',
+      }),
+    }),
+
+    // 2. Gửi kết quả đã giải mã lên server
+    updateDecryptedResults: builder.mutation<
+      ApiResponse<IResult>, 
+      { electionId: string; tallies: { candidateId: string; decryptedSum: number }[] }
+    >({
+      query: ({ electionId, tallies }) => ({
+        url: `results/decrypt/${electionId}`,
+        method: 'PUT',
+        body: { tallies },
+      }),
+    }),
+
     getElectionResults: builder.query<ApiResponse<IResult>, string>({
-      query: (electionId: string) => "results/"+electionId,
+      query: (electionId) => `results/${electionId}`,
+      // providesTags: ['Result']
     }),
   })
 })

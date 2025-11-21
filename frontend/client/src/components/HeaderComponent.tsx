@@ -21,7 +21,7 @@ function HeaderComponent() {
                       <Link to='/'>Trang chủ</Link>
                   </li>
                   <li className="text-lg font-medium hover:text-blue-400 transition duration-300">
-                      <Link to='/elections'>Danh sách các cuộc bầu cử của tôi</Link>
+                      <Link to='/elections'>Danh sách cuộc bầu cử của tôi</Link>
                   </li>
               </div>
 

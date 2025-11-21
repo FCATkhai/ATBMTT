@@ -1,16 +1,19 @@
 import nodemailer from 'nodemailer'
+import dotenv from 'dotenv'
+
+dotenv.config()
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
-        user: 'npkhai2004@gmail.com',
-        pass: process.env.GOOGLE_APP_PASSWORD
+        user: process.env.SECRET_GMAIL,
+        pass: process.env.SECRET_GMAIL_PASS
     }
 })
 
 export const exampleUsage = async () => {
     const mailOptions = {
-        from: 'npkhai2004@gmail.com',
+        from: 'dravence4@gmail.com',
         to: 'khaib2207531@student.ctu.edu.vn',
         subject: 'Test Email',
         text: 'This is a test email sent from Node.js using Nodemailer!'

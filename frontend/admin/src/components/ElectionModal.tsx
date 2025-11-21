@@ -1,10 +1,9 @@
-import { useEffect, useState } from "react";
-import React from "react"; 
+import React, { useEffect, useState, useRef } from "react"; // Thêm useRef
 import { DeleteCandidateRequest, ElectionStatus, ICandidate, IElection, IElectionCreate, PublicKeyType } from "../types/election";
 import AddCandidateModal from "./AddCandidateModal";
 import CandidateList from "./CandidateList";
 import apiSlice from "../store/apiSlice";
-import { generatePaillierKey } from "../utils/pailer";
+import { generatePaillierKey, decrypt } from "../utils/pailer";
 import AddVoterModal from "./AddVoterModal";
 
 interface ElectionModalProps {
@@ -16,13 +15,20 @@ interface ElectionModalProps {
 
 const ElectionModal: React.FC<ElectionModalProps> = ({ isOpen, onClose, election, isCreateMode }) => {
 
+  // --- Refs ---
+  // Ref để điều khiển input file ẩn
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // State quản lý Modal con
   const [isCandidateModalOpen, setIsCandidateModalOpen] = useState(false);
-  const [calculatedStatus, setCalculatedStatus] = useState<ElectionStatus>('upcoming');
-  const [createElection] = apiSlice.endpoints.createElection.useMutation()
   const [isVoterModalOpen, setIsVoterModalOpen] = useState(false);
+  const [isDeletingUser, setIsDeletingUser] = useState(false);
+  
+  // State dữ liệu Form
+  const [calculatedStatus, setCalculatedStatus] = useState<ElectionStatus>('upcoming');
   const [publicKeyParams, setPublicKeyParams] = useState({ keyLength: 10n });
   const [candidateList, setCandidateList] = useState<ICandidate[]>([]);
-  const [isDeletingUser, setIsDeletingUser] = useState(false);
+  
   const [newElectionData, setNewElectionData] = useState<IElectionCreate>({
     name: '',
     startTime: new Date(),
@@ -31,6 +37,12 @@ const ElectionModal: React.FC<ElectionModalProps> = ({ isOpen, onClose, election
     status: calculatedStatus
   });
 
+  // --- API Hooks ---
+  const [createElection] = apiSlice.endpoints.createElection.useMutation();
+  const [updateElection, { isLoading: isUpdating }] = apiSlice.useUpdateElectionMutation();
+  const [countElection, { isLoading: isCounting }] = apiSlice.useCountElectionMutation();
+  const [updateDecryptedResults, { isLoading: isPublishing }] = apiSlice.useUpdateDecryptedResultsMutation();
+  
   const [
     getCandidateByElectionId, 
     { data: fetchedCandidatesData, isLoading: isLoadingCandidates, isError: isErrorCandidates, isSuccess: isCandidatesSuccess }
@@ -41,25 +53,16 @@ const ElectionModal: React.FC<ElectionModalProps> = ({ isOpen, onClose, election
     { data: fetchedUsersData }
   ] = apiSlice.endpoints.getUsersByElectionId.useLazyQuery(); 
 
-  const [
-    deleteCandidate, 
-    { isLoading: isDeletingCandidate }
-  ] = apiSlice.endpoints.deleteCandidate.useMutation();
-
+  const [deleteCandidate, { isLoading: isDeletingCandidate }] = apiSlice.endpoints.deleteCandidate.useMutation();
   const [deleteUser] = apiSlice.useDeleteUserMutation();
 
+  // --- Effects ---
   useEffect(() => {
     if (isOpen && !isCreateMode && election?._id) {
       getCandidateByElectionId(election._id);
       getUsersByElectionId(election._id);
     }
   }, [isOpen, isCreateMode, election?._id, getCandidateByElectionId, getUsersByElectionId]);
-
-  useEffect(() => {
-    if (fetchedUsersData) {
-      console.log("Fetched users:", fetchedUsersData.data);
-    }
-  }, [fetchedUsersData]);
 
   useEffect(() => {
     if (isCandidatesSuccess && fetchedCandidatesData) {
@@ -74,6 +77,7 @@ const ElectionModal: React.FC<ElectionModalProps> = ({ isOpen, onClose, election
     }
   }, [newElectionData.startTime, newElectionData.endTime, isCreateMode]);
 
+  // --- Helper Functions ---
   const calculateStatus = (start: Date, end: Date): ElectionStatus => {
     const now = new Date();
     if (now < start) return 'upcoming';
@@ -86,6 +90,7 @@ const ElectionModal: React.FC<ElectionModalProps> = ({ isOpen, onClose, election
     return (new Date(date.getTime() - offset)).toISOString().slice(0, 16);
   };
 
+  // --- Handlers ---
   const handleCreateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     if (name === 'startTime' || name === 'endTime') {
@@ -112,24 +117,47 @@ const ElectionModal: React.FC<ElectionModalProps> = ({ isOpen, onClose, election
     }
 
     const { keyLength } = publicKeyParams;
-    let publicKey: PublicKeyType;
+    let generatedPublicKey: PublicKeyType;
+
     try {
-      publicKey = await generatePaillierKey(keyLength);
+      const { publicKey, privateKey } = await generatePaillierKey(keyLength);
+      generatedPublicKey = publicKey;
+
+      // Lưu file Private Key
+      const jsonString = JSON.stringify(privateKey, null, 2);
+      const blob = new Blob([jsonString], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement("a");
+      link.href = url;
+      const safeName = newElectionData.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      link.download = `private_key_${safeName}_${Date.now()}.json`;
+      
+      document.body.appendChild(link);
+      link.click(); 
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
     } catch (error) {
-      console.error(error);
+      console.error("Lỗi sinh khóa:", error);
+      alert("Có lỗi xảy ra khi sinh khóa bảo mật.");
       return;
     }
 
     const finalData = {
       ...newElectionData,
-      publicKey,
+      publicKey: generatedPublicKey,
       status: calculateStatus(newElectionData.startTime, newElectionData.endTime)
     };
-
-    console.log("Dữ liệu Cuộc Bầu Cử Mới (FINAL):", finalData);
-    await createElection(finalData);
-    alert(`Đã chuẩn bị tạo cuộc bầu cử: ${finalData.name} (Status: ${finalData.status}).`);
-    onClose();
+    
+    try {
+      await createElection(finalData).unwrap();
+      alert(`✅ Đã tạo cuộc bầu cử: ${finalData.name}.\n\n⚠️ QUAN TRỌNG: Một file chứa Private Key vừa được tải xuống máy của bạn. Hãy giữ nó an toàn để giải mã kết quả sau này!`);
+      onClose();
+    } catch (err) {
+      console.error(err);
+      alert("Lỗi khi gọi API tạo bầu cử.");
+    }
   };
 
   const handleAddCandidateClick = () => {
@@ -163,19 +191,148 @@ const ElectionModal: React.FC<ElectionModalProps> = ({ isOpen, onClose, election
 
   const handleDeleteVoter = async (voterId: string) => {
     if (!window.confirm("Bạn có chắc chắn muốn xóa cử tri này không?")) return;
-
     try {
       setIsDeletingUser(true)
-      await deleteUser({
-        userId: voterId,
-        electionId: null
-      }).unwrap();
-
+      await deleteUser({ userId: voterId, electionId: null }).unwrap();
       alert("Xóa cử tri thành công.");
       setIsDeletingUser(false)
-    }
-    catch(error) {
+    } catch(error) {
       alert(error)
+    }
+  };
+
+  // --- LOGIC TỔNG KẾT & CÔNG BỐ (ĐÃ SỬA ĐỔI) ---
+
+  // 1. Hàm kích hoạt khi bấm nút: Chỉ hỏi xác nhận và mở hộp thoại file
+  const handleSummarizeBtnClick = () => {
+    if (!election?._id) return;
+    
+    if (!window.confirm("⚠️ XÁC NHẬN TỔNG KẾT & CÔNG BỐ?\n\nHành động này sẽ:\n1. Đóng cổng bình chọn (nếu đang chạy).\n2. Tổng hợp tất cả phiếu bầu.\n3. Giải mã và CÔNG KHAI kết quả lên hệ thống.\n\nBạn sẽ cần chọn file Private Key (.json) ở bước tiếp theo.")) {
+      return;
+    }
+    
+    // Kích hoạt input file ẩn
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""; // Reset giá trị để chọn lại cùng 1 file vẫn kích hoạt onChange
+      fileInputRef.current.click();
+    }
+  };
+
+  // 2. Hàm xử lý khi File đã được chọn
+  const handlePrivateKeyFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    
+    reader.onload = async (e) => {
+      try {
+        const content = e.target?.result as string;
+        const privateKeyJson = JSON.parse(content);
+
+        // Validate sơ bộ xem đúng format Key không
+        if (!privateKeyJson.lambda || !privateKeyJson.mu || !privateKeyJson.publicKey) {
+          throw new Error("File không đúng định dạng Private Key.");
+        }
+
+        // Gọi hàm thực thi logic chính với key vừa đọc được
+        await executeSummarizeAndPublish(privateKeyJson);
+
+      } catch (error) {
+        console.error(error);
+        alert("Lỗi đọc file Private Key: " + (error as Error).message);
+      }
+    };
+
+    reader.readAsText(file);
+  };
+
+  // 3. Logic chính (Steps 1-4) đã tách riêng
+const executeSummarizeAndPublish = async (privKeyJson: any) => {
+    if (!election?._id) return;
+
+    // --- HÀM TIỆN ÍCH: CHUYỂN ĐỔI BIGINT AN TOÀN ---
+    const safeBigInt = (val: string | number): bigint => {
+      if (!val) return 0n;
+      const str = val.toString();
+      // Nếu đã có 0x thì giữ nguyên
+      if (str.startsWith("0x")) return BigInt(str);
+      // Nếu chứa ký tự a-f (Hex) mà chưa có 0x -> Thêm 0x
+      if (/[a-fA-F]/.test(str)) {
+        return BigInt("0x" + str);
+      }
+      return BigInt(str);
+    };
+
+    try {
+      // --- GIAI ĐOẠN 1: ĐÓNG CỔNG BẦU CỬ ---
+      console.log("1️⃣ Đang cập nhật trạng thái kết thúc...");
+      await updateElection({
+        electionId: election._id,
+        data: {
+          status: 'finished',
+          endTime: new Date() 
+        }
+      }).unwrap();
+
+      // --- GIAI ĐOẠN 2: SERVER CỘNG DỒN PHIẾU MÃ HÓA ---
+      console.log("2️⃣ Server đang tổng hợp phiếu bầu mã hóa...");
+      const countResult = await countElection(election._id).unwrap();
+      
+      console.log("📊 Kết quả thô từ server:", countResult);
+
+      if (!countResult.data || !countResult.data.tallies) {
+        throw new Error("Không nhận được dữ liệu tổng hợp từ Server.");
+      }
+
+      // --- GIAI ĐOẠN 3: CLIENT GIẢI MÃ ---
+      console.log("3️⃣ Client đang giải mã kết quả...");
+      
+      // A. Tái tạo Public Key (n, g, n^2)
+      const nVal = safeBigInt(privKeyJson.publicKey.n);
+      const publicKey = {
+          n: nVal,
+          g: safeBigInt(privKeyJson.publicKey.g), // Cần g cho đúng cấu trúc
+          n2: nVal * nVal // Tính lại n^2 cho chắc chắn
+      };
+
+      // B. Tái tạo Private Key (lambda, mu)
+      const privateKey = {
+          lambda: safeBigInt(privKeyJson.lambda),
+          mu: safeBigInt(privKeyJson.mu)
+      };
+
+      // C. Thực hiện giải mã từng ứng viên
+      const decryptedTallies = countResult.data.tallies.map((tally: any) => {
+        // Áp dụng safeBigInt cho chuỗi encryptedSum từ server trả về
+        const encryptedSumBigInt = safeBigInt(tally.encryptedSum);
+        
+        // 🔥 GỌI HÀM DECRYPT VỚI 3 THAM SỐ (Public, Private, Cipher)
+        const decryptedVal = decrypt(publicKey, privateKey, encryptedSumBigInt);
+        
+        return {
+          candidateId: tally.candidateId,
+          decryptedSum: Number(decryptedVal)
+        };
+      });
+
+      console.log("✅ Kết quả giải mã:", decryptedTallies);
+
+      // --- GIAI ĐOẠN 4: GỬI KẾT QUẢ THỰC VỀ SERVER ---
+      console.log("4️⃣ Đang cập nhật kết quả lên hệ thống...");
+      await updateDecryptedResults({
+        electionId: election._id,
+        tallies: decryptedTallies
+      }).unwrap();
+
+      alert("🎉 TỔNG KẾT THÀNH CÔNG!\nKết quả đã được công bố lên hệ thống.");
+      onClose();
+
+    } catch (error: any) {
+      console.error("❌ Lỗi quy trình:", error);
+      // Xử lý thông báo lỗi an toàn hơn
+      const errMsg = error?.data?.message || error?.message || "Vui lòng kiểm tra console";
+      alert(`Lỗi xảy ra: ${errMsg}`);
     }
   };
 
@@ -186,37 +343,81 @@ const ElectionModal: React.FC<ElectionModalProps> = ({ isOpen, onClose, election
 
   const title = isCreateMode ? "Tạo Cuộc Bầu Cử Mới" : (election?.name || "Chi Tiết Bầu Cử");
   const currentElectionId = election?._id || null;
+  const isProcessing = isUpdating || isCounting || isPublishing;
 
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex justify-center items-start z-50 overflow-auto py-10">
       <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-6xl">
+        
+        {/* Header */}
         <div className="flex justify-between items-center border-b pb-3 mb-4">
           <h2 className="text-2xl font-bold">{title}</h2>
           <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-3xl">&times;</button>
         </div>
-        <div className="flex gap-4 mb-4">
-        <button
+        
+        {/* Button Group */}
+        <div className="flex flex-wrap gap-4 mb-4">
+          <button
             onClick={handleAddCandidateClick}
             className={`py-2 px-4 rounded-full text-white font-semibold shadow
             ${election?.status === 'finished'
                 ? 'bg-gray-400 cursor-not-allowed'
                 : 'bg-blue-600 hover:bg-blue-700 active:scale-[0.97] transition'
             }`}
-        >
+          >
             Thêm Ứng viên
-        </button>
+          </button>
 
-        <button
+          <button
             onClick={handleManageVoterClick}
             className={`py-2 px-4 rounded-full text-white font-semibold shadow
             ${election?.status === 'finished'
                 ? 'bg-gray-400 cursor-not-allowed'
                 : 'bg-green-600 hover:bg-green-700 active:scale-[0.97] transition'
             }`}
-        >
+          >
             Quản lý Cử Tri
-        </button>
+          </button>
+
+          {/* NÚT TỔNG KẾT VÀ CÔNG BỐ KẾT QUẢ */}
+          {!isCreateMode && (
+            <>
+                <button
+                onClick={handleSummarizeBtnClick} // Gọi hàm kích hoạt file input
+                disabled={isProcessing}
+                className={`py-2 px-4 rounded-full text-white font-semibold shadow 
+                bg-purple-600 hover:bg-purple-700 active:scale-[0.97] transition flex items-center gap-2
+                ${isProcessing ? 'opacity-70 cursor-wait' : ''}`}
+                >
+                {isProcessing ? (
+                    <>
+                    <span className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+                    <span>Đang xử lý...</span>
+                    </>
+                ) : (
+                    <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                        <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
+                        <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span>Tổng kết và công bố kết quả</span>
+                    </>
+                )}
+                </button>
+                
+                {/* Input File Ẩn */}
+                <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    style={{ display: "none" }} 
+                    accept=".json" // Chỉ nhận file JSON
+                    onChange={handlePrivateKeyFileChange}
+                />
+            </>
+          )}
         </div>
+
+        {/* Body */}
         {isCreateMode ? (
           <div>
             <h3 className="text-lg font-semibold mb-3">Form Tạo Mới</h3>
@@ -267,7 +468,7 @@ const ElectionModal: React.FC<ElectionModalProps> = ({ isOpen, onClose, election
                <CandidateList candidates={candidateList} electionId={currentElectionId} onCandidateSelect={() => {}} onDelete={handleDeleteCandidate} />}
             </div>
 
-            {/* RIGHT: Voters */}
+            {/* RIGHT */}
             <div className="w-full lg:w-1/3 bg-gray-50 p-4 rounded-lg shadow-inner overflow-auto max-h-[600px]">
               <h4 className="text-xl font-semibold mb-4">Danh sách Cử Tri</h4>
               <table className="w-full table-auto border border-gray-300 text-lg">
@@ -285,13 +486,16 @@ const ElectionModal: React.FC<ElectionModalProps> = ({ isOpen, onClose, election
                         <td className="border px-2 py-1">{idx + 1}</td>
                         <td className="border px-2 py-1 break-all">{voter.email}</td>
                         <td className="border px-2 py-1 text-center">
-                          <button
-                            onClick={() => handleDeleteVoter(voter._id)}
-                            disabled={isDeletingUser}
-                            className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm shadow"
-                          >
-                            Xóa
-                          </button>
+                          { !voter.hasVoted ? (
+                            <button
+                              onClick={() => handleDeleteVoter(voter._id)}
+                              disabled={voter.hasVoted}
+                              className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-md text-sm shadow"
+                            >
+                              Xóa
+                            </button>
+                            ) : "Đã bầu"
+                          }
                         </td>
                       </tr>
                     ))

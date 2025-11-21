@@ -1,6 +1,10 @@
 import type { Request, Response, NextFunction } from 'express'
 import userService from '~/services/user.service'
 import Election from '~/models/election.model'
+import CandidateModel from '~/models/candidate.model'
+import UserModel from '~/models/user.model'
+import BallotModel from '~/models/ballot.model'
+import ResultModel from '~/models/result.model'
 
 /**
  *  @desc    Tạo mới một cuộc bầu cử
@@ -107,7 +111,7 @@ export const getElectionByUser = async (req: Request, res: Response, next: NextF
 
 /**
  *  @desc    Cập nhật thông tin hoặc trạng thái cuộc bầu cử
- *  @route   PUT /api/elections/:id
+ *  @route   PATCH /api/elections/:id
  *  @access  Private/Admin
  */
 export const updateElection = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -133,21 +137,39 @@ export const updateElection = async (req: Request, res: Response, next: NextFunc
 }
 
 /**
- *  @desc    Xóa cuộc bầu cử
- *  @route   DELETE /api/elections/:id
- *  @access  Private/Admin
+ * @desc    Xóa cuộc bầu cử và reset trạng thái cử tri
+ * @route   DELETE /api/elections/:id
+ * @access  Private/Admin
  */
-//TODO: Cân nhắc việc xóa mềm (soft delete) thay vì xóa cứng (hard delete)
 export const deleteElection = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const election = await Election.findById(req.params.id)
+        const electionId = req.params.id
+
+        const election = await Election.findById(electionId)
         if (!election) {
             res.status(404)
             throw new Error('Election not found')
         }
+        await UserModel.updateMany(
+            { electionId: electionId },
+            { 
+                $set: { 
+                    hasVoted: false, 
+                    electionId: null 
+                } 
+            }
+        )
 
+        await CandidateModel.deleteMany({ electionId }) // Xóa hết ứng viên
+        await BallotModel.deleteMany({ electionId })    // Xóa hết phiếu bầu cũ
+        await ResultModel.deleteMany({ electionId })    // Xóa kết quả kiểm phiếu
         await election.deleteOne()
-        res.json({ success: true, message: 'Election deleted successfully' })
+
+        res.json({ 
+            success: true, 
+            message: 'Election deleted, voters reset, and related data cleaned up successfully' 
+        })
+        
     } catch (error: unknown) {
         next(error)
     }

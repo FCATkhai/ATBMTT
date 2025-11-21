@@ -1,9 +1,8 @@
 import { PublicKeyType } from "../types/election";
 
-// -------------------- CÁC HÀM TIỆN ÍCH --------------------
+// -------------------- CÁC HÀM TIỆN ÍCH TOÁN HỌC --------------------
 
 export function serializePublicKey(pk: { n: bigint; g: bigint; n2: bigint }): PublicKeyType {
-    // Nên dùng radix 16 (hex) cho các số lớn để tiết kiệm không gian và tránh lỗi BigInt
     return {
         n: pk.n.toString(16),
         g: pk.g.toString(16),
@@ -11,8 +10,7 @@ export function serializePublicKey(pk: { n: bigint; g: bigint; n2: bigint }): Pu
     }
 }
 
-export function deserializePublicKey(data: { n: string; g: string; n2: string }): { n: bigint; g: bigint; n2: bigint } {
-    // Dùng radix 16 khi chuyển ngược lại từ chuỗi hex sang BigInt
+export function deserializePublicKey(data: PublicKeyType): { n: bigint; g: bigint; n2: bigint } {
     return {
         n: BigInt('0x' + data.n), 
         g: BigInt('0x' + data.g),
@@ -20,191 +18,292 @@ export function deserializePublicKey(data: { n: string; g: string; n2: string })
     }
 }
 
-export const isPrime = (num: bigint): boolean => {
-    // 1 và các số nhỏ hơn 1 không phải là số nguyên tố
-    if (num <= 1n) return false;
-    // 2 và 3 là số nguyên tố
-    if (num <= 3n) return true;
-    // Chia hết cho 2 hoặc 3
-    if (num % 2n === 0n || num % 3n === 0n) return false;
-    
-    // Thuật toán kiểm tra số nguyên tố cho số nhỏ
-    for (let i = 5n; i * i <= num; i = i + 6n) {
-        if (num % i === 0n || num % (i + 2n) === 0n) return false;
-    }
-    return true;
-};
-
-// Hàm tạo số ngẫu nhiên dưới dạng BigInt trong phạm vi chữ số.
-export const generateRandomBigInt = (numDigits: bigint): bigint => {
-    const num = Number(numDigits); // Chuyển sang number để dùng Math.pow
-
-    if (num < 1 || num > 16) { // Giới hạn số chữ số an toàn cho Math.pow
-        console.warn(`Độ dài chữ số ${num} không an toàn cho Math.pow. Sử dụng 16.`);
-        return generateRandomBigInt(16n);
-    }
-
-    // Tính min và max dưới dạng BigInt
-    const min = BigInt(10) ** (BigInt(num) - 1n);
-    const max = BigInt(10) ** BigInt(num) - 1n; 
-
-    // Tạo số ngẫu nhiên (chỉ là mô phỏng, không phải CSPRNG)
-    const range = Number(max - min); 
-    const randomNumber = BigInt(Math.floor(Math.random() * range)) + min;
-    
-    return randomNumber;
-};
-
-
-export const generateRandomPrime = (numDigits: bigint): bigint => {
-    if (numDigits < 1n || numDigits > 16n) {
-        console.warn(`Độ dài chữ số ${numDigits} không hợp lệ. Sử dụng 5.`);
-        numDigits = 5n; 
-    }
-
-    const MAX_ATTEMPTS = 5000; // Tăng số lần thử
-    let attempts = 0;
-
-    while (attempts < MAX_ATTEMPTS) {
-        let randomNumber = generateRandomBigInt(numDigits);
-        
-        // Luôn làm cho số đó là số lẻ (trừ khi nó là 2)
-        if (randomNumber % 2n === 0n && randomNumber !== 2n) {
-            randomNumber++;
-        }
-        
-        if (isPrime(randomNumber)) {
-            return randomNumber;
-        }
-        attempts++;
-    }
-
-    throw new Error(`Không thể tìm thấy số nguyên tố ${numDigits} chữ số sau ${MAX_ATTEMPTS} lần thử.`);
-};
-
 export const gcd = (a: bigint, b: bigint): bigint => {
-    while (b) {
-        [a, b] = [b, a % b];
+    while (b > 0n) {
+        let temp = b;
+        b = a % b;
+        a = temp;
     }
     return a;
 };
 
-
-// -------------------- HÀM TẠO KHÓA PAILLIER --------------------
+const lcm = (a: bigint, b: bigint): bigint => {
+    return (a === 0n || b === 0n) ? 0n : (a * b) / gcd(a, b);
+};
 
 /**
- * Hàm L(u) = (u-1)/n
+ * Thuật toán Euclid mở rộng (Extended Euclidean Algorithm)
+ * Tìm x, y sao cho: ax + by = gcd(a, b)
+ * Trả về [g, x, y]
  */
-const L = (u: bigint, n: bigint): bigint => {
-    // BigInt tự xử lý phép chia nguyên
-    return (u - 1n) / n;
+const egcd = (a: bigint, b: bigint): [bigint, bigint, bigint] => {
+    if (a === 0n) {
+        return [b, 0n, 1n];
+    }
+    const [g, y, x] = egcd(b % a, a);
+    return [g, x - (b / a) * y, y];
 };
 
-// Hàm tìm Modular Multiplicative Inverse (mu = a^-1 mod m)
-// Dùng Extended Euclidean Algorithm (cần thiết cho Paillier)
-// KHÔNG CÓ HÀM NATIVE. Cần cài đặt thủ công. TẠM GIẢ ĐỊNH trả về 1n.
+/**
+ * Tìm nghịch đảo Modular (Modular Multiplicative Inverse)
+ * Tìm x sao cho: (a * x) % m = 1
+ */
 const modInverse = (a: bigint, m: bigint): bigint => {
-    // Đây là nơi bạn sẽ cần Extended Euclidean Algorithm.
-    // Vì không có hàm native, ta giả định luôn tìm được inverse cho demo.
-    // Nếu bạn muốn triển khai thực tế, bạn phải dùng thư viện hoặc code hàm này.
-    console.warn("Cảnh báo: Hàm modInverse đang được giả lập. Cần triển khai thuật toán Euclid mở rộng.");
-    return 1n; 
+    const [g, x] = egcd(a, m);
+    if (g !== 1n) {
+        throw new Error('Modular inverse does not exist (a and m are not coprime)');
+    }
+    // Đảm bảo kết quả là số dương
+    return (x % m + m) % m;
 };
 
-// Hàm lũy thừa mô-đun (base^exp mod mod)
-// Cần thiết để tính g^lambda mod n^2
-const power = (base: bigint, exp: bigint, mod: bigint): bigint => {
+export const power = (base: bigint, exp: bigint, mod: bigint): bigint => {
     let res = 1n;
     base = base % mod;
     while (exp > 0n) {
-        if (exp % 2n === 1n) {
-            res = (res * base) % mod;
-        }
-        exp = exp / 2n;
+        if (exp % 2n === 1n) res = (res * base) % mod;
         base = (base * base) % mod;
+        exp /= 2n;
     }
     return res;
 };
 
+// -------------------- SINH SỐ NGẪU NHIÊN & NGUYÊN TỐ --------------------
+
+export const isPrime = (num: bigint): boolean => {
+    if (num <= 1n) return false;
+    if (num <= 3n) return true;
+    if (num % 2n === 0n || num % 3n === 0n) return false;
+    
+    // Kiểm tra nhanh một vài số đầu (tối ưu hiệu năng)
+    for (let i = 5n; i * i <= num; i += 6n) {
+        if (num % i === 0n || num % (i + 2n) === 0n) return false;
+    }
+    return true; 
+    // Lưu ý: Với số rất lớn (RSA chuẩn), cần dùng thuật toán Miller-Rabin. 
+    // Code này ổn cho demo key nhỏ (< 16 digits).
+};
+
+export const generateRandomBigInt = (bits: bigint): bigint => {
+    // Tạo số ngẫu nhiên trong khoảng nào đó dựa trên số chữ số
+    // Đây là cách đơn giản hóa cho JS native BigInt
+    const min = 10n ** (bits - 1n);
+    const max = (10n ** bits) - 1n;
+    const range = max - min;
+    
+    // Hacky random BigInt (Không an toàn mật mã chuẩn công nghiệp nhưng đủ cho demo)
+    const randStr = Array(Number(bits)).fill(0).map(() => Math.floor(Math.random() * 10)).join('');
+    let randBig = BigInt(randStr);
+    
+    if (randBig < min) randBig += min;
+    if (randBig > max) randBig = max;
+    
+    return randBig;
+};
 
 /**
- * Thực hiện logic tạo khóa Paillier (mô phỏng)
- * @param keyLength Số chữ số mong muốn cho n (ví dụ: 4n)
+ * Giải mã Ciphertext c sử dụng PrivateKey
+ * Công thức: m = L(c^lambda mod n^2) * mu mod n
+ * * @param publicKey Chứa n, g, n2
+ * @param privateKey Chứa lambda, mu
+ * @param c Số đã mã hóa (Ciphertext)
  */
-export const generatePaillierKey = (keyLength: bigint): PublicKeyType => {
-    
-    if (keyLength < 4n || keyLength > 16n) {
-         throw new Error("keyLength phải nằm trong khoảng 4n đến 16n cho mục đích demo này.");
+export function decrypt(
+    publicKey: { n: bigint; g: bigint; n2: bigint }, 
+    privateKey: { lambda: bigint; mu: bigint }, 
+    c: bigint
+): bigint {
+    // Destructuring để lấy các tham số cần thiết
+    const { n, n2 } = publicKey;
+    const { lambda, mu } = privateKey;
+
+    // 1. Tính u = c^lambda mod n^2
+    const u = modPow(c, lambda, n2);
+
+    // 2. Tính L(u) = (u - 1) / n
+    // Hàm L phải được định nghĩa trong file này: const L = (u: bigint, n: bigint) => (u - 1n) / n;
+    const lOfU = L(u, n);
+
+    // 3. Tính m = (L(u) * mu) mod n
+    let m = (lOfU * mu) % n;
+
+    // 4. Xử lý trường hợp % ra số âm trong JS
+    if (m < 0n) {
+        m += n;
     }
 
-    // --- BƯỚC 1 & 2: Chọn p, q và tính n ---
+    return m;
+}
+
+export const generateRandomPrime = (digits: bigint): bigint => {
+    const MAX_ATTEMPTS = 10000;
+    let attempts = 0;
+    while (attempts < MAX_ATTEMPTS) {
+        let num = generateRandomBigInt(digits);
+        if (num % 2n === 0n) num += 1n; // Đảm bảo lẻ
+        if (isPrime(num)) return num;
+        attempts++;
+    }
+    throw new Error("Cannot generate prime");
+};
+
+// -------------------- LOGIC PAILLIER CORE --------------------
+
+const L = (u: bigint, n: bigint): bigint => (u - 1n) / n;
+
+const getRandomBigInt = (bits: number): bigint => {
+    const byteLength = Math.ceil(bits / 8);
+    const array = new Uint8Array(byteLength);
+    window.crypto.getRandomValues(array);
     
+    // Chuyển Uint8Array sang Hex string rồi sang BigInt
+    let hex = "0x";
+    for (let i = 0; i < array.length; i++) {
+        hex += array[i].toString(16).padStart(2, "0");
+    }
+    return BigInt(hex);
+};
+
+// Sinh số nguyên tố n bit
+export const generatePrime = (bits: number): bigint => {
+    while (true) {
+        // Tạo số lẻ ngẫu nhiên
+        let num = getRandomBigInt(bits);
+        if (num % 2n === 0n) num += 1n;
+        
+        // Đảm bảo đủ bit
+        if (num.toString(2).length !== bits) continue;
+
+        if (isPrime(num)) return num;
+    }
+};
+
+function modPow(base: bigint, exp: bigint, mod: bigint): bigint {
+    if (mod === 1n) return 0n
+    let result = 1n
+    let b = base % mod
+    let e = exp
+    while (e > 0) {
+        if (e & 1n) result = (result * b) % mod
+        e >>= 1n
+        b = (b * b) % mod
+    }
+    return result
+}
+
+/** Modular inverse of a modulo m. Throws if inverse doesn't exist. */
+function modInv(a: bigint, m: bigint): bigint {
+    const [g, x] = (() => {
+        const t = egcd(a < 0n ? ((a % m) + m) % m : a, m)
+        return [t[0], t[1]]
+    })()
+    if (g !== 1n) throw new Error('modInv: inverse does not exist')
+    // ensure positive
+    return ((x % m) + m) % m
+}
+
+
+/**
+ * Hàm tạo khóa Paillier chuẩn.
+ * Nhận vào: number (số bit)
+ */
+export async function generateKeypair(keyBits = 1024) {
+    const pBits = Math.floor(keyBits / 2) + 1;
+    const qBits = Math.floor(keyBits / 2);
+
+    // 1) generate p and q
     let p: bigint, q: bigint, n: bigint;
-    const halfLen = keyLength / 2n;
-
-    do {
-        // 2.1. Tạo p (Độ dài chữ số: halfLen + 1)
-        p = generateRandomPrime(halfLen + 1n);
-        
-        // 2.2. Tạo q (Độ dài chữ số: keyLength - (halfLen + 1))
-        q = generateRandomPrime(keyLength - halfLen);
-        
+    while (true) {
+        p = generatePrime(pBits);
+        q = generatePrime(qBits);
+        if (p === q) continue;
         n = p * q;
-        
-        // 2.3. Lặp cho đến khi độ dài chữ số của n khớp với keyLength
-    } while (BigInt(n.toString().length) !== keyLength || p === q || gcd(n, (p - 1n) * (q - 1n)) !== 1n); 
-    // Thêm điều kiện Paillier: gcd(n, (p-1)(q-1)) = 1
+        if (n.toString(2).length === keyBits) break;
+    }
 
-    const pMinus1 = p - 1n;
-    const qMinus1 = q - 1n;
-    const nSquared = n * n; // n^2
-    
-    // --- BƯỚC 3: Tính Lambda (Carmichael's function) ---
-    
-    // gcd(p-1, q-1)
-    const gcdPQ = gcd(pMinus1, qMinus1);
-    
-    // lambda = LCM(p-1, q-1) = ((p-1)*(q-1))/gcd(p-1, q-1)
-    const lambda = (pMinus1 * qMinus1) / gcdPQ;
+    const n2 = n * n;
 
+    // 2) lambda
+    const lambda = lcm(p - 1n, q - 1n);
 
-    // --- BƯỚC 4: Chọn Generator g ---
-    
+    // 3) choose g
     let g: bigint;
     let mu: bigint;
-    
-    do {
-        // Chọn g = n + 1, lựa chọn phổ biến và an toàn
-        g = n + 1n; 
-
-        // Tính g^lambda mod n^2 (SỬ DỤNG HÀM POWER ĐÃ TRIỂN KHAI)
-        const gLambdaModN2 = power(g, lambda, nSquared); 
+    for (;;) {
+        g = getRandomBigInt(n2.toString(2).length) % n2;
+        if (g <= 1n) continue;
         
-        // L(g^lambda mod n^2)
-        const LValue = L(gLambdaModN2, n);
+        const gl = modPow(g, lambda, n2);
+        const lVal = L(gl, n);
         
-        // gcd(L(g^lambda mod n^2), n)
-        const checkGCD = gcd(LValue, n);
-        
-        if (checkGCD === 1n) {
-            // --- BƯỚC 5: Tính Mu (Modular Multiplicative Inverse) ---
-            // Mu = (L(g^lambda mod n^2))^(-1) mod n
-            
-            // SỬ DỤNG HÀM MOD INVERSE GIẢ LẬP
-            mu = modInverse(LValue, n); 
+        if (gcd(lVal, n) === 1n) {
+            mu = modInv(lVal % n, n);
             break;
         }
-        
-        // Nếu không tìm thấy, ta sẽ phải chọn g ngẫu nhiên khác (nhưng g=n+1 thường đủ)
-    } while (true);
+    }
 
+    // 4) FORMAT OUTPUT CHO BACKEND (String Hex)
+    // Sử dụng .toString(16) để chuyển BigInt thành chuỗi Hex
+    // Backend sẽ lưu chuỗi này.
+    const publicKey = { 
+        n: n.toString(16), 
+        g: g.toString(16), 
+        n2: n2.toString(16) 
+    };
 
-    // --- Trả về Public Key ---
-    
-    // Cần gọi serializePublicKey để chuyển BigInt sang chuỗi hex trước khi trả về
-    return serializePublicKey({
-        n: n,
-        g: g,
-        n2: nSquared 
-    });
+    // Private Key lưu cả decimal và hex để tiện xử lý ở client
+    const privateKey = { 
+        lambda: lambda.toString(), 
+        mu: mu.toString(),
+        publicKey: { n: n.toString(), g: g.toString() }, // Lưu dạng Decimal string để tránh lỗi parse
+        p: p.toString(),
+        q: q.toString()
+    };
+
+    return { publicKey, privateKey };
+}
+
+// --- Wrapper Adapter ---
+// Hàm này để tương thích với giao diện cũ đang gọi bằng BigInt
+export const generatePaillierKey = async (keyBits: bigint) => {
+    return await generateKeypair(Number(keyBits));
 };
+
+/**
+ * Hàm Mã Hóa (Encryption)
+ * c = g^m * r^n mod n^2
+ * @param publicKey Khóa công khai (n, g, n2)
+ * @param m Thông điệp (ở đây là phiếu bầu: 0 hoặc 1)
+ */
+export const encrypt = (publicKeyStr: PublicKeyType, m: bigint): bigint => {
+    const pub = deserializePublicKey(publicKeyStr);
+    
+    // 1. Chọn số ngẫu nhiên r sao cho 0 < r < n và gcd(r, n) = 1
+    let r: bigint;
+    do {
+        // Độ dài r tương đương n
+        r = generateRandomBigInt(BigInt(pub.n.toString().length)); 
+    } while (r >= pub.n || r <= 0n || gcd(r, pub.n) !== 1n);
+
+    // 2. Tính c = (g^m mod n^2) * (r^n mod n^2) mod n^2
+    
+    // gm = g^m mod n^2
+    const gm = power(pub.g, m, pub.n2);
+    
+    // rn = r^n mod n^2
+    const rn = power(r, pub.n, pub.n2);
+    
+    // c = (gm * rn) mod n^2
+    const c = (gm * rn) % pub.n2;
+
+    return c;
+};
+
+/**
+ * Hàm Cộng đồng cấu (Homomorphic Addition) - Dùng để test ở client nếu cần
+ * D(E(m1) * E(m2) mod n^2) = m1 + m2
+ */
+export const homomorphicAdd = (publicKeyStr: PublicKeyType, c1: bigint, c2: bigint): bigint => {
+    const pub = deserializePublicKey(publicKeyStr);
+    return (c1 * c2) % pub.n2;
+}

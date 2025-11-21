@@ -217,18 +217,39 @@ export function homomorphicScalarMul(publicKey: { n: bigint; n2: bigint }, c: bi
     return modPow(c, k, publicKey.n2)
 }
 
-/** Decrypt ciphertext c using privateKey
- * m = L(c^lambda mod n^2) * mu mod n
+/**
+ * Giải mã Ciphertext c sử dụng PrivateKey
+ * Công thức: m = L(c^lambda mod n^2) * mu mod n
+ * * @param publicKey Chứa n, g, n2
+ * @param privateKey Chứa lambda, mu
+ * @param c Số đã mã hóa (Ciphertext)
  */
-export function decrypt(publicKey: { n: bigint; n2: bigint }, privateKey: { lambda: bigint; mu: bigint }, c: bigint) {
-    const { n, n2 } = publicKey
-    const { lambda, mu } = privateKey
-    const u = modPow(c, lambda, n2)
-    const lOfU = L(u, n)
-    const m = (lOfU * mu) % n
-    return m
-}
+export function decrypt(
+    publicKey: { n: bigint; g: bigint; n2: bigint }, 
+    privateKey: { lambda: bigint; mu: bigint }, 
+    c: bigint
+): bigint {
+    // Destructuring để lấy các tham số cần thiết
+    const { n, n2 } = publicKey;
+    const { lambda, mu } = privateKey;
 
+    // 1. Tính u = c^lambda mod n^2
+    const u = modPow(c, lambda, n2);
+
+    // 2. Tính L(u) = (u - 1) / n
+    // Hàm L phải được định nghĩa trong file này: const L = (u: bigint, n: bigint) => (u - 1n) / n;
+    const lOfU = L(u, n);
+
+    // 3. Tính m = (L(u) * mu) mod n
+    let m = (lOfU * mu) % n;
+
+    // 4. Xử lý trường hợp % ra số âm trong JS
+    if (m < 0n) {
+        m += n;
+    }
+
+    return m;
+}
 /* -------------------------
    Serialization helpers
    ------------------------- */
@@ -243,9 +264,9 @@ export function serializePublicKey(pk: { n: bigint; g: bigint; n2: bigint }) {
 
 export function deserializePublicKey(data: { n: string; g: string; n2: string }) {
     return {
-        n: BigInt(data.n),
-        g: BigInt(data.g),
-        n2: BigInt(data.n2)
+        n: BigInt(data.n.startsWith('0x') ? data.n : '0x' + data.n),
+        g: BigInt(data.g.startsWith('0x') ? data.g : '0x' + data.g),
+        n2: BigInt(data.n2.startsWith('0x') ? data.n2 : '0x' + data.n2)
     }
 }
 

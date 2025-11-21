@@ -23,7 +23,7 @@ const CandidateList: React.FC<CandidateListProps> = ({
   }, [candidates, electionId]);
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 h-screen overflow-y-auto">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 overflow-y-auto">
       {filteredCandidates.length > 0 ? (
         filteredCandidates.map((candidate) => {
           // 🔹 Kiểm tra xem ứng viên này có được chọn không

@@ -24,7 +24,13 @@ export const countElectionResult = async (req: Request, res: Response, next: Nex
             res.status(404)
             throw new Error('publicKey not found')
         }
-        const pk = deserializePublicKey(publicKey)
+        const safePublicKey = {
+            n: publicKey.n.startsWith('0x') ? publicKey.n : '0x' + publicKey.n,
+            g: publicKey.g.startsWith('0x') ? publicKey.g : '0x' + publicKey.g,
+            n2: publicKey.n2.startsWith('0x') ? publicKey.n2 : '0x' + publicKey.n2
+        };
+        console.log(safePublicKey)
+        const pk = deserializePublicKey(safePublicKey)
 
         const ballots = await Ballot.find({ electionId })
         if (ballots.length === 0) {
@@ -32,20 +38,24 @@ export const countElectionResult = async (req: Request, res: Response, next: Nex
             throw new Error('No ballots found for this election')
         }
 
-        const candidateSums: Record<string, string> = {}
+        const candidateSums: Record<string, bigint> = {}
 
         for (const ballot of ballots) {
             const entries = JSON.parse(ballot.encryptedBallot) as Array<{
                 candidateId: string
                 cipher: string
-            }>
+            }>;
+
             for (const { candidateId, cipher } of entries) {
-                const c = BigInt(cipher)
+                // Xử lý đầu vào an toàn (thêm 0x nếu thiếu)
+                const c = BigInt(cipher.startsWith("0x") ? cipher : "0x" + cipher);
+
                 if (!candidateSums[candidateId]) {
-                    candidateSums[candidateId] = c.toString(16)
+                    // Gán trực tiếp BigInt
+                    candidateSums[candidateId] = c;
                 } else {
-                    // cộng dồn ciphertext
-                    candidateSums[candidateId] = homomorphicAdd(pk, BigInt(candidateSums[candidateId]), c).toString(16)
+                    // Cộng dồn trực tiếp BigInt (Không cần convert qua lại)
+                    candidateSums[candidateId] = homomorphicAdd(pk, candidateSums[candidateId], c);
                 }
             }
         }
@@ -72,6 +82,7 @@ export const countElectionResult = async (req: Request, res: Response, next: Nex
             data: result
         })
     } catch (error) {
+        console.log(error)
         next(error)
     }
 }
@@ -81,6 +92,7 @@ export const countElectionResult = async (req: Request, res: Response, next: Nex
  *  @access  Private/Admin
  */
 export const updateDecryptedResults = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    console.log("Let me see")
     try {
         const { electionId } = req.params
         const { tallies } = req.body

@@ -20,44 +20,54 @@ export const createUser = async (req: Request, res: Response, next: NextFunction
     try {
         const { name, email, password, role, electionId } = req.body
 
-        // Kiểm tra email đã tồn tại chưa
+        // 1. Kiểm tra email đã tồn tại chưa
         const existingUser = await User.findOne({ email })
+        
         if (existingUser) {
-            res.status(400)
-            throw new Error('Email already exists')
+            res.status(200).json({
+                success: false,
+                existed: true,
+                message: "User already exists",
+                user: existingUser
+            });
+            return; // <--- THÊM DÒNG NÀY
         }
 
-        // Tạo user mới
+        // 2. Tạo user mới
         const newUser = new User({
             name,
             email,
-            password,
+            password, 
             electionId,
-            role: role || 'voter' // Mặc định là "voter"
+            role: role || 'voter'
         })
 
         await newUser.save()
 
-        // Gửi email chào mừng
-        const mailOptions = {
-            from: 'npkhai2004@gmail.com',
-            to: email,
-            subject: 'Chào mừng bạn đến với hệ thống bầu cử',
-            html: `<p>Xin chào ${name},</p>
-                    <p>Bạn đã được đăng ký tài khoản trong hệ thống bầu cử của chúng tôi.</p>
-                    <p>Thông tin đăng nhập của bạn là:</p>
-                    <ul>
-                        <li>Email: ${email}</li>
-                        <li>Mật khẩu: ${password}</li>
-                    </ul>
-                    <p>Chúng tôi rất vui được hỗ trợ bạn trong quá trình bầu cử.</p>
-                    <p>Trân trọng,<br/>Đội ngũ Bầu cử</p>`
+        console.log(newUser)
+        console.log(password)
+    
+        try {
+            await transporter.sendMail({
+                from: '"Hệ thống Bầu cử"', 
+                to: email,
+                subject: 'Chào mừng bạn đến với hệ thống bầu cử',
+                html: `<p>Xin chào <b>${name}</b>,</p>
+                       <p>Tài khoản của bạn đã được tạo thành công.</p>
+                       <p>Mật khẩu: ${password}</p>`
+            })
+        } catch (mailError) {
+            console.error("Lỗi gửi mail:", mailError);
+            // Không throw error ở đây để Client vẫn nhận được thông báo tạo user thành công
         }
 
-        await transporter.sendMail(mailOptions)
+        res.status(201).json({
+            success: true,
+            message: 'User created successfully',
+            user: newUser
+        })
 
-        res.status(201).json({ success: true, message: 'User created successfully', data: newUser })
-    } catch (error: unknown) {
+    } catch (error) {
         next(error)
     }
 }

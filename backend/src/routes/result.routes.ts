@@ -6,7 +6,7 @@ import { USER_GROUPS } from '~/config/constant'
 const router = Router()
 
 router.post('/count/:electionId', authorize(USER_GROUPS.ADMINS_ONLY), countElectionResult) // tổng ciphertext
-router.post('/decrypted/:electionId', authorize(USER_GROUPS.ADMINS_ONLY), updateDecryptedResults) // cập nhật decryptedSum
+router.put('/decrypt/:electionId', authorize(USER_GROUPS.ADMINS_ONLY), updateDecryptedResults) // cập nhật decryptedSum
 router.get('/:electionId', authenticate, getElectionResult) // lấy ciphertext
 
 export default router

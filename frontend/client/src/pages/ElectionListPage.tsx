@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import type { ClickedStatusMap, ElectionStatus } from "../types/election";
 import React from "react";
 import apiSlice from "../store/apiSlice";
+import { useSelector } from "react-redux";
+import { RootState } from "../store/store";
 
 const getStatusBadge = (status: ElectionStatus) => {
   switch (status) {
@@ -46,14 +48,15 @@ const formatDate = (date: Date) => {
 const LOCAL_STORAGE_KEY_PER_ITEM = "elections_item_clicked_status";
 
 const ElectionListPage = () => {
-  // --- Trạng thái localStorage (giữ nguyên)
+  const currentUser = useSelector((state: RootState) => state.auth.user);
+
+  // ---- State lưu trạng thái click ----
   const getInitialClickedStatus = (): ClickedStatusMap => {
     const storedStatus = localStorage.getItem(LOCAL_STORAGE_KEY_PER_ITEM);
     if (storedStatus) {
       try {
         return JSON.parse(storedStatus) as ClickedStatusMap;
-      } catch (error) {
-        console.error("Lỗi khi đọc trạng thái click từ localStorage:", error);
+      } catch {
         return {};
       }
     }
@@ -71,41 +74,46 @@ const ElectionListPage = () => {
   }, [clickedStatus]);
 
   const handleButtonClick = (electionId: string) => {
-    setClickedStatus((prevStatus) => ({
-      ...prevStatus,
+    setClickedStatus((prev) => ({
+      ...prev,
       [electionId]: true,
     }));
   };
 
-  const isElectionClicked = (electionId: string): boolean => {
-    return clickedStatus[electionId] === true;
-  };
+  const isElectionClicked = (electionId: string): boolean =>
+    clickedStatus[electionId] === true;
 
-  // --- Dùng useLazyQuery để fetch theo userId ---
-  const [getElectionsByUserId, { data: fetchedElections, isLoading, isError }] =
+  // ---- Lazy query ----
+  const [getElectionsByUserId, { data, isLoading, isError }] =
     apiSlice.endpoints.getElectionsByUserId.useLazyQuery();
 
+  // ---- SỬA QUAN TRỌNG: thêm currentUser vào dependency ----
   useEffect(() => {
-    // ✅ Giả sử bạn có userId trong localStorage
-    const userId = localStorage.getItem("userId");
-    if (userId) {
-      getElectionsByUserId(userId);
+    if (currentUser?._id) {
+      getElectionsByUserId(currentUser._id);
     }
-  }, [getElectionsByUserId]);
+  }, [currentUser, getElectionsByUserId]);
 
-  useEffect(() => {
-    if (fetchedElections) {
-      console.log("✅ fetchedElections:", fetchedElections);
+  const rawData = data?.data;
+
+    let elections: any[] = [];
+
+    if (rawData) {
+      if (Array.isArray(rawData)) {
+        elections = rawData;
+      } else if (typeof rawData === 'object') {
+        elections = [rawData];
+      }
     }
-  }, [fetchedElections]);
 
-  // --- Hiển thị trạng thái tải ---
+  // ---- Loading ----
   if (isLoading) {
     return (
       <div className="p-6 text-center text-gray-500">Đang tải danh sách...</div>
     );
   }
 
+  // ---- Error ----
   if (isError) {
     return (
       <div className="p-6 text-center text-red-500">
@@ -117,7 +125,7 @@ const ElectionListPage = () => {
   return (
     <div className="p-6">
       <h1 className="text-3xl font-bold text-gray-800 mb-6">
-        Danh sách các Cuộc bầu cử được mời
+        Danh sách cuộc bầu cử được mời
       </h1>
 
       <div className="bg-white shadow-lg rounded-lg overflow-hidden">
@@ -128,10 +136,10 @@ const ElectionListPage = () => {
                 Tên cuộc bầu cử
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Thời gian Bắt đầu
+                Bắt đầu
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Thời gian Kết thúc
+                Kết thúc
               </th>
               <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Trạng thái
@@ -143,8 +151,8 @@ const ElectionListPage = () => {
           </thead>
 
           <tbody className="bg-white divide-y divide-gray-200">
-            {fetchedElections?.data?.length ? (
-              fetchedElections.data.map((election) => {
+            {elections.length > 0 ? (
+              elections.map((election: any) => {
                 const clicked = isElectionClicked(election._id);
                 return (
                   <tr
@@ -153,7 +161,7 @@ const ElectionListPage = () => {
                       clicked ? "bg-indigo-50/50" : ""
                     }`}
                   >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 relative">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900 relative">
                       {clicked ? (
                         <span className="absolute top-0 left-0 bg-indigo-500 text-white text-xs font-bold px-2 py-0.5 rounded-br-lg shadow-md">
                           ✅ Đã Xem
@@ -165,35 +173,40 @@ const ElectionListPage = () => {
                       )}
                       {election.name}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+
+                    <td className="px-6 py-4 text-sm text-gray-500">
                       {formatDate(new Date(election.startTime))}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+
+                    <td className="px-6 py-4 text-sm text-gray-500">
                       {formatDate(new Date(election.endTime))}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
+
+                    <td className="px-6 py-4 text-center">
                       {getStatusBadge(election.status)}
                     </td>
 
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <td className="px-6 py-4 text-right text-sm font-medium">
                       {election.status === "running" && (
                         <Link
                           to={`/election/${election._id}/vote`}
-                          className="text-indigo-600 hover:text-indigo-900 transition duration-150"
+                          className="text-indigo-600 hover:text-indigo-900"
                           onClick={() => handleButtonClick(election._id)}
                         >
                           Bình chọn ngay
                         </Link>
                       )}
+
                       {election.status === "finished" && (
                         <Link
                           to={`/election/${election._id}/result`}
-                          className="text-blue-600 hover:text-blue-900 transition duration-150"
+                          className="text-blue-600 hover:text-blue-900"
                           onClick={() => handleButtonClick(election._id)}
                         >
                           Xem Kết quả
                         </Link>
                       )}
+
                       {election.status === "upcoming" && (
                         <span className="text-gray-400">Chờ đợi</span>
                       )}

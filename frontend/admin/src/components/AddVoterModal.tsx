@@ -19,6 +19,7 @@ const AddVoterModal: React.FC<AddVoterModalProps> = ({ isOpen, onClose, election
     const [totalProgress, setTotalProgress] = useState(0);
 
     const [createUser] = apiSlice.useCreateUserMutation();
+    const [updateUser] = apiSlice.useUpdateUserMutation();
 
     if (!isOpen) return null;
 
@@ -74,7 +75,6 @@ const AddVoterModal: React.FC<AddVoterModalProps> = ({ isOpen, onClose, election
         }
     };
 
-    // --- GỬI SINGLE ---
     const handleSubmitSingle = async () => {
         if (!email || !electionId) return;
 
@@ -86,14 +86,25 @@ const AddVoterModal: React.FC<AddVoterModalProps> = ({ isOpen, onClose, election
         };
 
         try {
-            const createdUser = await createUser({ electionId, ...user }).unwrap();
-            if (createdUser) {
+            const created = await createUser({ electionId, ...user }).unwrap();
 
-                alert(`Đã thêm cử tri: ${user.email} có mật khẩu ${user.password}`);
+            // 🔥 User đã tồn tại → update electionId
+            if (created.existed) {
+                await updateUser({
+                    userId: created.user._id,
+                    electionId
+                }).unwrap();
+
+                alert(`Email ${email} đã tồn tại — đã chuyển sang cuộc bầu cử hiện tại!`);
+                onClose();
+                return;
             }
-            
+
+            // 🔥 User mới
+            alert(`Đã thêm cử tri: ${user.email} với mật khẩu: ${user.password}`);
             setEmail("");
             onClose();
+
         } catch (err) {
             console.error(err);
             alert("Lỗi khi thêm cử tri!");
@@ -109,11 +120,21 @@ const AddVoterModal: React.FC<AddVoterModalProps> = ({ isOpen, onClose, election
         setTotalProgress(usersBatch.length);
 
         for (let i = 0; i < usersBatch.length; i++) {
-            const email = usersBatch[i];
+            const user = usersBatch[i];
+
             try {
-                await createUser({ electionId, ...email}).unwrap();
+                const created = await createUser({ electionId, ...user }).unwrap();
+
+                // 🔥 User đã tồn tại → update electionId
+                if (created.existed) {
+                    await updateUser({
+                        userId: created.user._id,
+                        electionId
+                    }).unwrap();
+                }
+
             } catch (err) {
-                console.error(`Lỗi khi thêm cử tri ${email}:`, err);
+                console.error(`Lỗi khi xử lý user ${user.email}:`, err);
             }
 
             setCurrentProgress(i + 1);

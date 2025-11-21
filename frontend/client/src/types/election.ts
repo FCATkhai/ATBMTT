@@ -14,6 +14,7 @@ export interface IUser{
     role: UserRole
     electionId?: string | null
     comparePassword(candidatePassword: string): Promise<boolean>
+    hasVoted: boolean
 }
 
 export interface IUSerResponse {
@@ -88,14 +89,20 @@ export interface IBallot{
 export interface IBallotRequest {
     voterId: string,
     electionId: string,
-    encryptedVotes: string
+    encryptedBallot: string
 }
 
-export interface IResult{
-    electionId: string
+export type tally = {
     candidateId: string
-    encryptedSum: string // ciphertext tổng phiếu
-    decryptedSum?: number | null // chỉ có sau khi giải mã
+    encryptedSum: string 
+    decryptedSum: number 
+}
+export interface IResult extends Document {
+    _id: string
+    electionId: string
+    tallies: tally[]
+    createdAt: Date
+    updatedAt: Date
 }
 
 export interface DeleteCandidateRequest {

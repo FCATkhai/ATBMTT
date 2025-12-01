@@ -26,7 +26,7 @@ const ElectionModal: React.FC<ElectionModalProps> = ({ isOpen, onClose, election
   
   // State dữ liệu Form
   const [calculatedStatus, setCalculatedStatus] = useState<ElectionStatus>('upcoming');
-  const [publicKeyParams, setPublicKeyParams] = useState({ keyLength: 10n });
+  const [publicKeyParams, setPublicKeyParams] = useState({ keyLength: 512 });
   const [candidateList, setCandidateList] = useState<ICandidate[]>([]);
   
   const [newElectionData, setNewElectionData] = useState<IElectionCreate>({

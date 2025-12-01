@@ -215,7 +215,9 @@ export async function generateKeypair(keyBits = 1024) {
     let p: bigint, q: bigint, n: bigint;
     while (true) {
         p = generatePrime(pBits);
+        console.log(p)
         q = generatePrime(qBits);
+        console.log(q)
         if (p === q) continue;
         n = p * q;
         if (n.toString(2).length === keyBits) break;
@@ -225,19 +227,22 @@ export async function generateKeypair(keyBits = 1024) {
 
     // 2) lambda
     const lambda = lcm(p - 1n, q - 1n);
-
+    console.log("Lambda")
     // 3) choose g
     let g: bigint;
     let mu: bigint;
     for (;;) {
         g = getRandomBigInt(n2.toString(2).length) % n2;
+        console.log(g)
         if (g <= 1n) continue;
         
         const gl = modPow(g, lambda, n2);
+        console.log(gl)
         const lVal = L(gl, n);
         
         if (gcd(lVal, n) === 1n) {
             mu = modInv(lVal % n, n);
+            console.log(mu)
             break;
         }
     }
@@ -265,7 +270,7 @@ export async function generateKeypair(keyBits = 1024) {
 
 // --- Wrapper Adapter ---
 // Hàm này để tương thích với giao diện cũ đang gọi bằng BigInt
-export const generatePaillierKey = async (keyBits: bigint) => {
+export const generatePaillierKey = async (keyBits: number) => {
     return await generateKeypair(Number(keyBits));
 };
 
